@@ -209,6 +209,11 @@ class FiniteCategory(object):
 
         return Functor(full_subcat, law, self)
 
+    def trivial_representation(self, ring):
+        def law(x, f, y):
+            return matrix(ring, 1, 1, [1])
+        return MatrixRepresentation(self, ring, law, target_cat=None)
+
 
 
 
@@ -529,6 +534,10 @@ class CatMat(object):
     # since we often will want more interesting indexing data
     # The source objects and target objects should be allowed
     # to be dictionaries once I get around to it.
+    #
+    # TODO: reimplement so that the entries are stored as a dict of entries
+    # TODO: and where the source and target can be lists of hashable things
+    # TODO: and then implement slicing
     def __init__(self, ring, cat, source, data_vector, target):
         """
 
@@ -1049,6 +1058,7 @@ class CatMat(object):
         # but for now we return the latex string
         return self.to_latex()
 
+    # TODO: if other is a scalar, then scale.  If it is a sagemath matrix, then perform a col op
     def __mul__(self, other):
         if len(self.target) != len(other.source):
             raise ValueError('Number of columns does not match number of rows: ' +
@@ -1087,6 +1097,8 @@ class CatMat(object):
     def __eq__(self, other):
         return self.source == other.source and self.target == other.target and self.data_vector == other.data_vector
 
+    # TODO: if the argument is a sagemath matrix instead of a scalar, then it should do a row operation
+    # row op should be... first find the rows as data_vectors; then build a sagemath matrix; then multiply; reassemble.
     # Scaling a matrix should happen on the left
     def __rmul__(self, scalar):
         return CatMat(self.ring, self.cat, self.source, self.data_vector * scalar, self.target)

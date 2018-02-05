@@ -40,7 +40,7 @@ n = 3
 V = Vertices(n)
 E = GraphEdges(n)
 D = G(n).op()
-ring = QQ
+ring = ZZ
 
 
 
@@ -152,17 +152,17 @@ def simplicial_complex_model(X):
 
 
 
-cx_big = simplicial_complex_model(SimplicialComplex([[1, 2], [1, 3], [1, 4]]))
+cx_big = simplicial_complex_model(SimplicialComplex([[1, 2], [1, 3], [1, 4], [2, 5], [3, 5], [4, 5]]))
 
 print 'big complex computed'
 print str(datetime.now())
 
 top_deg = 10
-cx = prune_dg_module(cx_big, (0, top_deg), verbose=True)
+cx = prune_dg_module_on_poset(cx_big, (0, top_deg), verbose=True)
 
 diff_dict = {d: cx.differential('*', (d,)) for d in range(-1, top_deg + 1)}
 save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target) for d in range(-1, top_deg + 1)}
 
-save(save_dict, 'conf-3-claw')
+save(save_dict, 'conf-3-theta')
 print 'small complex saved'
 print str(datetime.now())

@@ -1,10 +1,7 @@
-from sage.all import *
+from sage.all import matrix
 from CatMat import *
 
 
-# In a poset, there is a much faster pruning algorithm available
-# Look at the blocks where the row-label matches the column label
-# find an invertible submatrix in there using usual linear algebra
 
 # This code currently assumes that no two objects are isomorphic
 # i.e. that the category is skeletal
@@ -78,3 +75,146 @@ def prune_dg_module(dgm, (a, b), verbose=False):
 
     return dgModule(TerminalCategory, dgm.ring, pruned_f_law, [pruned_d_law], target_cat=dgm.target_cat)
 
+
+
+# In a poset, there is a much faster pruning algorithm available
+# Look at the blocks where the row-label matches the column label
+# find an invertible submatrix in there using usual linear algebra
+
+# Here m is a sagemath matrix over ZZ or a field
+# and our job is to find row ops and col ops that remove as many ZZ --- 1 ---> ZZ summands as possible.
+# The function returns x, y so that x * m * y is rectangular diagonal, and with all leading 1's deleted.
+# The kernel and cokernel of x * m * y should be isomorphic to those of m.
+
+
+# print x.inverse() * d * y.inverse()
+def prune_matrix(m):
+    d, x, y = m.smith_form()
+    ring = m.base_ring()
+    p = len([i for i in range(min(*d.dimensions())) if d[i, i] == ring(1)])
+    return p, matrix(ring, x.inverse())[:, p:], x[p:, :], y[:, p:], matrix(ring, y.inverse())[p:, :]
+
+
+def prune_dg_module_on_poset(dgm, (a, b), verbose=False):
+    tv = dgm.cat.objects[0]
+    ring = dgm.ring
+    cat = dgm.target_cat
+    #diff_dict = {d:dgm.differential(tv, (d,)) for d in range(a - 1, b + 1)}
+    diff_dict = {}
+    for d in range(a - 1, b + 1):
+        if verbose:
+            print 'computing differential in degree ' + str(d)
+        diff_dict[d] = dgm.differential(tv, (d,))
+    if verbose:
+        print 'original differentials computed'
+
+    # Since we assume that cat is a poset,
+    # we may convert the differentials to usual sagemath matrices
+    # as long as we keep track of the row labels.
+    #
+    triv = cat.trivial_representation(ring)
+    m_dict = {}
+    for d in range(a - 1, b + 1):
+        m_dict[d] = triv(diff_dict[d])
+    # This dict will keep track of the row labels
+    m_source = {}
+    # and dict will keep track of the target labels
+    m_target = {}
+
+    # Time to sort the rows
+    for d in range(a - 1, b + 1):
+        targ = m_dict[d].ncols()
+        rows = m_dict[d].rows()
+        new_rows = []
+        for x in cat.objects:
+            m_source[d, x] = 0
+            for i, r in enumerate(rows):
+                if diff_dict[d].source[i] == x:
+                    m_source[d, x] += 1
+                    new_rows += [r]
+        if len(new_rows) == 0:
+            m_dict[d] = zero_matrix(ring, 0, targ)
+        else:
+            m_dict[d] = block_matrix(ring, [[matrix(ring, 1, targ, list(r))] for r in new_rows])
+
+    # and now the columns
+    for d in range(a - 1, b + 1):
+        sour = m_dict[d].nrows()
+        cols = m_dict[d].columns()
+        new_cols = []
+        for x in cat.objects:
+            m_target[d, x] = 0
+            for i, c in enumerate(cols):
+                if diff_dict[d].target[i] == x:
+                    m_target[d, x] += 1
+                    new_cols += [c]
+        if len(new_cols) == 0:
+            m_dict[d] = zero_matrix(ring, sour, 0)
+        else:
+            m_dict[d] = block_matrix(ring, [[matrix(ring, sour, 1, list(c)) for c in new_cols]])
+
+    if verbose:
+        for d in range(a - 1, b + 1):
+            print
+            print [m_source[d, x] for x in cat.objects]
+            for r in m_dict[d]:
+                print r
+            print [m_target[d, x] for x in cat.objects]
+
+    # Find the desired row- and column-operations
+    # and change the labels (slightly prematurely)
+    for d in range(a, b):
+        scop = {}
+        srop = {}
+        tcop = {}
+        trop = {}
+        eblock = {}
+        zs = 0
+        zt = 0
+        for x in cat.objects:
+            eblock[x] = m_dict[d][zs:zs + m_source[d, x], zt:zt + m_target[d, x]]
+            zs += m_source[d, x]
+            zt += m_target[d, x]
+        for x in cat.objects:
+            if verbose:
+                print 'Computing Smith form for a matrix with dimensions ' + str(eblock[x].dimensions()) + '...'
+            dropped, scop[x], srop[x], tcop[x], trop[x] = prune_matrix(eblock[x])
+            if verbose:
+                print 'Complete. Dropping ' + str(dropped)
+            m_target[d - 1, x] -= dropped
+            m_source[d, x] -= dropped
+            m_target[d, x] -= dropped
+            m_source[d + 1, x] -= dropped
+        sc = block_diagonal_matrix([scop[x] for x in cat.objects])
+        sr = block_diagonal_matrix([srop[x] for x in cat.objects])
+        tc = block_diagonal_matrix([tcop[x] for x in cat.objects])
+        tr = block_diagonal_matrix([trop[x] for x in cat.objects])
+
+        m_dict[d - 1] = m_dict[d - 1] * sc
+        m_dict[d] = sr * m_dict[d] * tc
+        m_dict[d + 1] = tr * m_dict[d + 1]
+
+        print
+        for r in m_dict[d].rows():
+            print r
+
+
+    for d in range(a - 1, b + 1):
+        source = [x for x in cat.objects for _ in range(m_source[d, x])]
+        target = [x for x in cat.objects for _ in range(m_target[d, x])]
+        dv = [w for i, r in enumerate(m_dict[d].rows()) for j, w in enumerate(r)
+              if len(cat.hom(source[i], target[j])) == 1]
+        data_vector = vector(ring, dv)
+        diff_dict[d] = CatMat(ring, cat, source, data_vector, target)
+
+    def pruned_f_law((d,), x, f, y):
+        if d in range(a - 1, b + 1):
+            return CatMat.identity_matrix(ring, cat, diff_dict[d].source)
+        return dgm.module_in_degree((d,))(x, f, y)
+
+    def pruned_d_law(x, (d,)):
+        if d in range(a - 1, b + 1):
+            return diff_dict[d]
+        return dgm.differential((d,))
+
+    return dgModule(TerminalCategory, ring, pruned_f_law, [pruned_d_law], target_cat=cat)
