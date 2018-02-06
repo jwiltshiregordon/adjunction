@@ -152,7 +152,7 @@ def simplicial_complex_model(X):
 
 
 
-cx_big = simplicial_complex_model(SimplicialComplex([[1, 2], [1, 3], [1, 4], [2, 5], [3, 5], [4, 5]]))
+cx_big = simplicial_complex_model(SimplicialComplex([[1]]))
 
 print 'big complex computed'
 print str(datetime.now())
@@ -163,6 +163,6 @@ cx = prune_dg_module_on_poset(cx_big, (0, top_deg), verbose=True)
 diff_dict = {d: cx.differential('*', (d,)) for d in range(-1, top_deg + 1)}
 save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target) for d in range(-1, top_deg + 1)}
 
-save(save_dict, 'conf-3-theta')
+save(save_dict, 'conf-3-point')
 print 'small complex saved'
 print str(datetime.now())

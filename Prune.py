@@ -92,7 +92,7 @@ def prune_matrix(m):
     d, x, y = m.smith_form()
     ring = m.base_ring()
     p = len([i for i in range(min(*d.dimensions())) if d[i, i] == ring(1)])
-    return p, matrix(ring, x.inverse())[:, p:], x[p:, :], y[:, p:], matrix(ring, y.inverse())[p:, :]
+    return p, matrix(ring, x.inverse())[:, p:], x, y, matrix(ring, y.inverse())[p:, :]
 
 
 def prune_dg_module_on_poset(dgm, (a, b), verbose=False):
@@ -169,6 +169,7 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False):
         tcop = {}
         trop = {}
         eblock = {}
+        dropped = {}
         zs = 0
         zt = 0
         for x in cat.objects:
@@ -178,13 +179,13 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False):
         for x in cat.objects:
             if verbose:
                 print 'Computing Smith form for a matrix with dimensions ' + str(eblock[x].dimensions()) + '...'
-            dropped, scop[x], srop[x], tcop[x], trop[x] = prune_matrix(eblock[x])
+            dropped[x], scop[x], srop[x], tcop[x], trop[x] = prune_matrix(eblock[x])
             if verbose:
                 print 'Complete. Dropping ' + str(dropped)
-            m_target[d - 1, x] -= dropped
-            m_source[d, x] -= dropped
-            m_target[d, x] -= dropped
-            m_source[d + 1, x] -= dropped
+            m_target[d - 1, x] -= dropped[x]
+            #m_source[d, x] -= dropped[x]
+            #m_target[d, x] -= dropped[x]
+            m_source[d + 1, x] -= dropped[x]
         sc = block_diagonal_matrix([scop[x] for x in cat.objects])
         sr = block_diagonal_matrix([srop[x] for x in cat.objects])
         tc = block_diagonal_matrix([tcop[x] for x in cat.objects])
@@ -194,9 +195,56 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False):
         m_dict[d] = sr * m_dict[d] * tc
         m_dict[d + 1] = tr * m_dict[d + 1]
 
-        print
-        for r in m_dict[d].rows():
-            print r
+        # So now we have a bunch of identity matrices in m_dict[d] but they are all spread out
+        # time to put them all at the front.
+        #
+        # Start by moving the rows
+        new_rows = []
+        old_rows = m_dict[d].rows()
+        zs = 0
+        for x in cat.objects:
+            new_rows += old_rows[zs:zs + dropped[x]]
+            zs += m_source[d, x]
+        zs = 0
+        for x in cat.objects:
+            new_rows += old_rows[zs + dropped[x]:zs + m_source[d, x]]
+            zs += m_source[d, x]
+        if len(new_rows) == 0:
+            # No need to rebuild it in this case
+            # since it is fine already!
+            pass
+        else:
+            targ = m_dict[d].ncols()
+            m_dict[d] = block_matrix(ring, [[matrix(ring, 1, targ, list(r))] for r in new_rows])
+        #
+        # And now the columns
+        new_cols = []
+        old_cols = m_dict[d].columns()
+        zt = 0
+        for x in cat.objects:
+            new_cols += old_cols[zt:zt + dropped[x]]
+            zt += m_target[d, x]
+        zt = 0
+        for x in cat.objects:
+            new_cols += old_cols[zt + dropped[x]:zt + m_target[d, x]]
+            zt += m_target[d, x]
+        if len(new_cols) == 0:
+            # No need to rebuild it in this case
+            # since it is fine already!
+            pass
+        else:
+            sour = m_dict[d].nrows()
+            m_dict[d] = block_matrix(ring, [[matrix(ring, sour, 1, list(c)) for c in new_cols]])
+
+        z = 0
+        for x in cat.objects:
+            z += dropped[x]
+
+        m_dict[d] = m_dict[d][z:, z:] - m_dict[d][z:, :z] * m_dict[d][:z, z:]
+
+        for x in cat.objects:
+            m_source[d, x] -= dropped[x]
+            m_target[d, x] -= dropped[x]
 
 
     for d in range(a - 1, b + 1):

@@ -45,7 +45,8 @@ n = 2
 V = Vertices(n)
 E = GraphEdges(n)
 D = G(n)
-ring = QQ
+Dop = D.op()
+ring = ZZ
 
 
 
@@ -195,6 +196,7 @@ def distinct_row_pairs(m):
     return [(a, b) for a, b in GraphEdges(n) if m.row(a-1) != m.row(b-1)]
 
 
+# Using the pruned model is probably always better
 def simplicial_complex(X):
     cmp = conf_matrix_poset(n, X)
     max_conf_mats = cmp.maximal_elements()
@@ -237,6 +239,40 @@ def simplicial_complex(X):
         return matrix(ring, len(rows), len(cols), [matrix_entry(r, c) for r in rows for c in cols])
 
     return dgModule(D, ring, f_law, [d_law])
+
+
+# This code loads matrixwise information and returns pointwise.
+# Use it with OberwolfachPractice-style code.
+#
+# If you prefer to use the matrixwise dgModules directly,
+# then you will want the ProdConf-style code.
+#
+# filename should be like 'conf-2-claw'
+# and should contain a dict of triples (source, data_vector, target)
+# The conventions are a bit different for object names in the loaded file
+# They are tuples of tuples.  To make them sets, use Set(edges_tuple).
+def load_pruned_model(filename):
+    dvs = load(filename + '.sobj')
+    ring = dvs[0][1].base_ring()
+    diff_dict = {}
+    for d in dvs:
+        source = [Set(t) for t in dvs[d][0]]
+        target = [Set(t) for t in dvs[d][2]]
+        diff_dict[d] = CatMat(ring, Dop, source, dvs[d][1], target)
+
+    def f_law((d,), x, f, y):
+        if d in diff_dict:
+            fm = D.free_module(ring, diff_dict[d].source)
+            return fm(x, f, y)
+        return matrix(ring, 0, 0, [])
+
+    def d_law(x, (d,)):
+        if d in diff_dict:
+            fom = D.free_op_module(ring, [x])
+            return fom(diff_dict[d])
+        return matrix(ring, 0, 0, [])
+
+    return dgModule(D, ring, f_law, [d_law], target_cat=None)
 
 
 

@@ -156,10 +156,15 @@ class FiniteCategory(object):
     def op(self):
         return self.op_cat
 
+    # Bug: since objects of the category might be iterable
+    # you must always give a list of degrees.
+    # TODO: go through code and fix every appearance of free_module(ring, single_degree)
     def free_module(self, ring, degrees):
         try:
             iter(degrees)
         except TypeError:
+            print 'Warning! You have passed a non-iterable list of degrees to free_module.'
+            print 'Figure out when it happend, and fix it!'
             return self.free_module(ring, (degrees,))
 
         def law(x, f, y):

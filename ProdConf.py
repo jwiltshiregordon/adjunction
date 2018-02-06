@@ -41,7 +41,7 @@ n = 3
 V = Vertices(n)
 E = GraphEdges(n)
 D = G(n).op()
-ring = QQ
+ring = ZZ
 
 
 def load_model(model_name):
@@ -59,8 +59,8 @@ def load_model(model_name):
     return dgModule(TerminalCategory, ring, f_law, [d_law], target_cat=D)
 
 # Make sure n matches because the code will run anyway
-space_X = load_model('conf-3-interval')
-space_Y = load_model('conf-3-interval')
+space_X = load_model('conf-3-theta')
+space_Y = load_model('conf-3-theta')
 
 
 double_complex = dgModule.outer_tensor_product(space_X, space_Y)
@@ -84,5 +84,7 @@ full_union = MatrixRepresentation(D_squared, ring, full_union_f_law)
 
 
 Ch = ChainComplex({k:full_union(tot.differential(('*','*'), (k,))).transpose() for k in range(9)})
-print Ch.homology()
+h = Ch.homology()
+for d in h:
+    print h[d]
 
