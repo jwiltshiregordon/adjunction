@@ -1,8 +1,6 @@
 from sage.all import *
 from CatMat import *
 
-
-
 # Load up the models and examine the givens
 from CochainModels import *
 
@@ -80,27 +78,11 @@ interval = SimplicialComplex([[1, 2]])
 
 
 # space_X = simplicial_complex(interval)
-space_Y = simplicial_complex(interval)
+space_Y = load_pruned_model('conf-3-circle')
 # space_Y = equivariant_complexes
-space_X = load_pruned_model('conf-2-interval')
+space_X = load_pruned_model('conf-3-circle')
+# space_X = load_unpruned_model(SimplicialComplex([[1, 2]]))
 # space_Y = load_pruned_model('conf-2-interval')
-
-
-# Examine the ones that work
-empty, complete = D.objects
-print empty
-print complete
-print
-
-print 'Empty: '
-print space_X.differential(empty, (0,)).dimensions()
-print
-print space_X.differential(empty, (1,)).dimensions()
-
-print 'Complete: '
-print space_X.differential(complete, (0,)).dimensions()
-print
-print space_X.differential(complete, (1,)).dimensions()
 
 sys.exit(0)
 

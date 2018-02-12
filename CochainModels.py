@@ -5,6 +5,7 @@ from sage.all import Matroid
 import sys
 sys.path.insert(0, '/Users/jwiltshiregordon/Dropbox/SageUseful')
 from ConfigurationSpace import power_complex
+from SimplicialComplexModel import *
 
 def Vertices(n):
     return range(1, n + 1)
@@ -26,10 +27,6 @@ def G(n):
     return FiniteCategory(Graphs(n), G_one, G_hom, G_comp)
 
 
-
-
-
-
 # Models available:
 
 # reals
@@ -41,12 +38,12 @@ def G(n):
 
 
 
-n = 2
+n = 3
 V = Vertices(n)
 E = GraphEdges(n)
 D = G(n)
 Dop = D.op()
-ring = ZZ
+ring = GF(2)
 
 
 
@@ -246,6 +243,7 @@ def simplicial_complex(X):
 #
 # If you prefer to use the matrixwise dgModules directly,
 # then you will want the ProdConf-style code.
+# TODO: that code is returning wrong answers?
 #
 # filename should be like 'conf-2-claw'
 # and should contain a dict of triples (source, data_vector, target)
@@ -258,19 +256,37 @@ def load_pruned_model(filename):
     for d in dvs:
         source = [Set(t) for t in dvs[d][0]]
         target = [Set(t) for t in dvs[d][2]]
-        diff_dict[d] = CatMat(ring, Dop, source, dvs[d][1], target)
+        diff_dict[d] = CatMat(ring, Dop, source, dvs[d][1], target).transpose()
 
     def f_law((d,), x, f, y):
         if d in diff_dict:
-            fm = D.free_module(ring, diff_dict[d].source)
-            return fm(x, f, y)
+            fm = D.free_op_module(ring, diff_dict[d].target)
+            return fm(y, f, x).transpose()
         return matrix(ring, 0, 0, [])
 
     def d_law(x, (d,)):
         if d in diff_dict:
-            fom = D.free_op_module(ring, [x])
-            return fom(diff_dict[d])
+            fom = D.free_module(ring, [x])
+            return fom(diff_dict[d]).transpose()
         return matrix(ring, 0, 0, [])
+
+    return dgModule(D, ring, f_law, [d_law], target_cat=None)
+
+# Define the functor that takes me from one convention to the other
+def convert_law(x, f, y):
+    return (Set(x), f, Set(y))
+
+
+def load_unpruned_model(scx):
+    cx = simplicial_complex_model(scx)
+
+    def f_law((d,), x, f, y):
+        fm = D.free_module(ring, [Set(s) for s in cx.differential('*', (d,)).source])
+        return fm(x, f, y)
+
+    def d_law(x, (d,)):
+        fom = D.free_op_module(ring, [x])
+        return fom(cx.differential('*', (d,)))
 
     return dgModule(D, ring, f_law, [d_law], target_cat=None)
 

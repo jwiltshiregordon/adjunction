@@ -1,4 +1,4 @@
-from sage.all import matrix
+from sage.all import matrix, zero_matrix, block_diagonal_matrix, block_matrix, vector, identity_matrix
 from CatMat import *
 
 
@@ -95,7 +95,7 @@ def prune_matrix(m):
     return p, matrix(ring, x.inverse())[:, p:], x, y, matrix(ring, y.inverse())[p:, :]
 
 
-def prune_dg_module_on_poset(dgm, (a, b), verbose=False):
+def prune_dg_module_on_poset(dgm, (a, b), verbose=False, assume_sorted=False):
     tv = dgm.cat.objects[0]
     ring = dgm.ring
     cat = dgm.target_cat
@@ -112,140 +112,127 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False):
     # we may convert the differentials to usual sagemath matrices
     # as long as we keep track of the row labels.
     #
-    triv = cat.trivial_representation(ring)
+    # triv = cat.trivial_representation(ring)
+    # m_dict = {}
+    # for d in range(a - 1, b + 1):
+    #     m_dict[d] = triv(diff_dict[d])
+
     m_dict = {}
     for d in range(a - 1, b + 1):
-        m_dict[d] = triv(diff_dict[d])
+        if verbose:
+            print 'Expanding the differential in degree ' + str(d)
+        entries = []
+        z = 0
+        dv = diff_dict[d].data_vector
+        source = diff_dict[d].source
+        target = diff_dict[d].target
+        for x in source:
+            for y in target:
+                if len(cat.hom(x, y)) == 1:
+                    entries += [dv[z]]
+                    z += 1
+                else:
+                    entries += [ring(0)]
+        m_dict[d] = matrix(ring, len(source), len(target), entries)
+
     # This dict will keep track of the row labels
     m_source = {}
     # and dict will keep track of the target labels
     m_target = {}
 
-    # Time to sort the rows
-    for d in range(a - 1, b + 1):
-        targ = m_dict[d].ncols()
-        rows = m_dict[d].rows()
-        new_rows = []
-        for x in cat.objects:
-            m_source[d, x] = 0
-            for i, r in enumerate(rows):
-                if diff_dict[d].source[i] == x:
-                    m_source[d, x] += 1
-                    new_rows += [r]
-        if len(new_rows) == 0:
-            m_dict[d] = zero_matrix(ring, 0, targ)
-        else:
-            m_dict[d] = block_matrix(ring, [[matrix(ring, 1, targ, list(r))] for r in new_rows])
-
-    # and now the columns
-    for d in range(a - 1, b + 1):
-        sour = m_dict[d].nrows()
-        cols = m_dict[d].columns()
-        new_cols = []
-        for x in cat.objects:
-            m_target[d, x] = 0
-            for i, c in enumerate(cols):
-                if diff_dict[d].target[i] == x:
-                    m_target[d, x] += 1
-                    new_cols += [c]
-        if len(new_cols) == 0:
-            m_dict[d] = zero_matrix(ring, sour, 0)
-        else:
-            m_dict[d] = block_matrix(ring, [[matrix(ring, sour, 1, list(c)) for c in new_cols]])
-
-    if verbose:
+    if assume_sorted:
         for d in range(a - 1, b + 1):
-            print
-            print [m_source[d, x] for x in cat.objects]
-            for r in m_dict[d]:
-                print r
-            print [m_target[d, x] for x in cat.objects]
+            for x in cat.objects:
+                m_source[d, x] = 0
+                m_target[d, x] = 0
+                for y in diff_dict[d].source:
+                    if x == y:
+                        m_source[d, x] += 1
+                for y in diff_dict[d].target:
+                    if x == y:
+                        m_target[d, x] += 1
+            source_assumed = [x for x in cat.objects for _ in range(m_source[d, x])]
+            if diff_dict[d].source != source_assumed:
+                raise ValueError('This dgModule is not sorted in degree ' + str(d))
+    else:
+        # Time to sort the rows
+        for d in range(a - 1, b + 1):
+            targ = m_dict[d].ncols()
+            rows = m_dict[d].rows()
+            new_rows = []
+            for x in cat.objects:
+                m_source[d, x] = 0
+                for i, r in enumerate(rows):
+                    if diff_dict[d].source[i] == x:
+                        m_source[d, x] += 1
+                        new_rows += [r]
+            if len(new_rows) == 0:
+                m_dict[d] = zero_matrix(ring, 0, targ)
+            else:
+                m_dict[d] = block_matrix(ring, [[matrix(ring, 1, targ, list(r))] for r in new_rows])
+
+        # and now the columns
+        for d in range(a - 1, b + 1):
+            sour = m_dict[d].nrows()
+            cols = m_dict[d].columns()
+            new_cols = []
+            for x in cat.objects:
+                m_target[d, x] = 0
+                for i, c in enumerate(cols):
+                    if diff_dict[d].target[i] == x:
+                        m_target[d, x] += 1
+                        new_cols += [c]
+            if len(new_cols) == 0:
+                m_dict[d] = zero_matrix(ring, sour, 0)
+            else:
+                m_dict[d] = block_matrix(ring, [[matrix(ring, sour, 1, list(c)) for c in new_cols]])
+
+    # if verbose:
+    #     for d in range(a - 1, b + 1):
+    #         print
+    #         print [m_source[d, x] for x in cat.objects]
+    #         for r in m_dict[d]:
+    #             print r
+    #         print [m_target[d, x] for x in cat.objects]
 
     # Find the desired row- and column-operations
     # and change the labels (slightly prematurely)
     for d in range(a, b):
-        scop = {}
-        srop = {}
-        tcop = {}
-        trop = {}
-        eblock = {}
-        dropped = {}
-        zs = 0
-        zt = 0
         for x in cat.objects:
-            eblock[x] = m_dict[d][zs:zs + m_source[d, x], zt:zt + m_target[d, x]]
-            zs += m_source[d, x]
-            zt += m_target[d, x]
-        for x in cat.objects:
+            upper_left = m_dict[d][:m_source[d, x], :m_target[d, x]]
             if verbose:
-                print 'Computing Smith form for a matrix with dimensions ' + str(eblock[x].dimensions()) + '...'
-            dropped[x], scop[x], srop[x], tcop[x], trop[x] = prune_matrix(eblock[x])
+                print 'Computing Smith form of a matrix with dimensions ' + str(upper_left.dimensions())
+            dropped, sc, sr, tc, tr = prune_matrix(upper_left)
             if verbose:
-                print 'Complete. Dropping ' + str(dropped)
-            m_target[d - 1, x] -= dropped[x]
-            #m_source[d, x] -= dropped[x]
-            #m_target[d, x] -= dropped[x]
-            m_source[d + 1, x] -= dropped[x]
-        sc = block_diagonal_matrix([scop[x] for x in cat.objects])
-        sr = block_diagonal_matrix([srop[x] for x in cat.objects])
-        tc = block_diagonal_matrix([tcop[x] for x in cat.objects])
-        tr = block_diagonal_matrix([trop[x] for x in cat.objects])
+                print 'Dropping ' + str(dropped) + ' out of ' + str(m_source[d, x]) + \
+                      ' occurrences of ' + str(x) + ' in degree ' + str(d - 1)
+            m_target[d - 1, x] -= dropped
+            m_source[d + 1, x] -= dropped
+            cid = m_dict[d - 1].ncols() - sc.nrows()
+            zul = zero_matrix(ring, sc.nrows(), cid)
+            zlr = zero_matrix(ring, cid, sc.ncols())
+            m_dict[d - 1] = m_dict[d - 1] * block_matrix([[zul, sc], [identity_matrix(ring, cid), zlr]])
+            rid = m_dict[d + 1].nrows() - tr.ncols()
+            zul = zero_matrix(ring, rid, tr.ncols())
+            zlr = zero_matrix(ring, tr.nrows(), rid)
+            m_dict[d + 1] = block_matrix([[zul, identity_matrix(ring, rid)], [tr, zlr]]) * m_dict[d + 1]
 
-        m_dict[d - 1] = m_dict[d - 1] * sc
-        m_dict[d] = sr * m_dict[d] * tc
-        m_dict[d + 1] = tr * m_dict[d + 1]
+            row_rest = m_dict[d].nrows() - m_source[d, x]
+            col_rest = m_dict[d].ncols() - m_target[d, x]
 
-        # So now we have a bunch of identity matrices in m_dict[d] but they are all spread out
-        # time to put them all at the front.
-        #
-        # Start by moving the rows
-        new_rows = []
-        old_rows = m_dict[d].rows()
-        zs = 0
-        for x in cat.objects:
-            new_rows += old_rows[zs:zs + dropped[x]]
-            zs += m_source[d, x]
-        zs = 0
-        for x in cat.objects:
-            new_rows += old_rows[zs + dropped[x]:zs + m_source[d, x]]
-            zs += m_source[d, x]
-        if len(new_rows) == 0:
-            # No need to rebuild it in this case
-            # since it is fine already!
-            pass
-        else:
-            targ = m_dict[d].ncols()
-            m_dict[d] = block_matrix(ring, [[matrix(ring, 1, targ, list(r))] for r in new_rows])
-        #
-        # And now the columns
-        new_cols = []
-        old_cols = m_dict[d].columns()
-        zt = 0
-        for x in cat.objects:
-            new_cols += old_cols[zt:zt + dropped[x]]
-            zt += m_target[d, x]
-        zt = 0
-        for x in cat.objects:
-            new_cols += old_cols[zt + dropped[x]:zt + m_target[d, x]]
-            zt += m_target[d, x]
-        if len(new_cols) == 0:
-            # No need to rebuild it in this case
-            # since it is fine already!
-            pass
-        else:
-            sour = m_dict[d].nrows()
-            m_dict[d] = block_matrix(ring, [[matrix(ring, sour, 1, list(c)) for c in new_cols]])
+            m_dict[d] = block_diagonal_matrix([sr, identity_matrix(ring, row_rest)]) * m_dict[d]
+            m_dict[d] = m_dict[d] * block_diagonal_matrix([tc, identity_matrix(ring, col_rest)])
 
-        z = 0
-        for x in cat.objects:
-            z += dropped[x]
-
-        m_dict[d] = m_dict[d][z:, z:] - m_dict[d][z:, :z] * m_dict[d][:z, z:]
-
-        for x in cat.objects:
-            m_source[d, x] -= dropped[x]
-            m_target[d, x] -= dropped[x]
-
+            rest_rest = m_dict[d][m_source[d, x]:, m_target[d, x]:]
+            rest_dropped = m_dict[d][m_source[d, x]:, :dropped]
+            dropped_rest = m_dict[d][:dropped, m_target[d, x]:]
+            rest_kept = m_dict[d][m_source[d, x]:, dropped:m_target[d, x]]
+            kept_rest = m_dict[d][dropped:m_source[d, x], m_target[d, x]:]
+            kept_kept = m_dict[d][dropped:m_source[d, x], dropped:m_target[d, x]]
+            m_dict[d] = block_matrix(ring, [[rest_rest - rest_dropped * dropped_rest, rest_kept],
+                                            [kept_rest,                               kept_kept]])
+            m_source[d, x] -= dropped
+            m_target[d, x] -= dropped
 
     for d in range(a - 1, b + 1):
         source = [x for x in cat.objects for _ in range(m_source[d, x])]

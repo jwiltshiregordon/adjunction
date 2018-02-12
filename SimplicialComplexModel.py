@@ -9,6 +9,9 @@ sys.path.insert(0, '/Users/jwiltshiregordon/Dropbox/SageUseful')
 from ConfigurationSpace import power_complex
 from Prune import *
 
+# TODO: This code may have errors.  Rewrite using homology + chains the whole time so you don't get confused again.
+
+
 def Vertices(n):
     return range(1, n + 1)
 
@@ -152,17 +155,18 @@ def simplicial_complex_model(X):
 
 
 
-cx_big = simplicial_complex_model(SimplicialComplex([[1]]))
+# cx_big = simplicial_complex_model(SimplicialComplex([[1, 2]]))
+# cx = simplicial_complex_model(SimplicialComplex([[1, 2], [1, 3], [2, 3]]))
+#
+# print 'big complex computed'
+# print str(datetime.now())
+#
+# top_deg = 100
+# cx = prune_dg_module_on_poset(cx_big, (0, top_deg), verbose=True)
 
-print 'big complex computed'
-print str(datetime.now())
-
-top_deg = 10
-cx = prune_dg_module_on_poset(cx_big, (0, top_deg), verbose=True)
-
-diff_dict = {d: cx.differential('*', (d,)) for d in range(-1, top_deg + 1)}
-save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target) for d in range(-1, top_deg + 1)}
-
-save(save_dict, 'conf-3-point')
-print 'small complex saved'
-print str(datetime.now())
+# diff_dict = {d: cx.differential('*', (d,)) for d in range(-1, top_deg + 1)}
+# save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target) for d in range(-1, top_deg + 1)}
+#
+# save(save_dict, 'conf-3-circle')
+# print 'small complex saved'
+# print str(datetime.now())

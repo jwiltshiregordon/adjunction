@@ -35,8 +35,6 @@ def G(n):
     return FiniteCategory(Graphs(n), G_one, G_hom, G_comp)
 
 
-
-
 n = 3
 V = Vertices(n)
 E = GraphEdges(n)
@@ -59,8 +57,8 @@ def load_model(model_name):
     return dgModule(TerminalCategory, ring, f_law, [d_law], target_cat=D)
 
 # Make sure n matches because the code will run anyway
-space_X = load_model('conf-3-theta')
-space_Y = load_model('conf-3-theta')
+space_X = load_model('conf-3-circle')
+space_Y = load_model('conf-3-circle')
 
 
 double_complex = dgModule.outer_tensor_product(space_X, space_Y)
@@ -80,6 +78,8 @@ def full_union_f_law(x, f, y):
     return matrix(ring, rr, cc, [1] * (rr * cc))
 
 full_union = MatrixRepresentation(D_squared, ring, full_union_f_law)
+
+# TODO: must use resolution for full_union here?
 
 
 
