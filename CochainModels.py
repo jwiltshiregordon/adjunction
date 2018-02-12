@@ -272,10 +272,6 @@ def load_pruned_model(filename):
 
     return dgModule(D, ring, f_law, [d_law], target_cat=None)
 
-# Define the functor that takes me from one convention to the other
-def convert_law(x, f, y):
-    return (Set(x), f, Set(y))
-
 
 def load_unpruned_model(scx):
     cx = simplicial_complex_model(scx)

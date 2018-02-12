@@ -1,14 +1,17 @@
 from sage.all import *
 import itertools
+from multiprocessing import Pool
 from CatMat import FiniteCategory, CatMat, dgModule, TerminalCategory
 from Prune import *
 
 # Set these values before running
 n = 3
-X = SimplicialComplex([[1, 2, 3]])
+X = SimplicialComplex([[1, 2], [1, 3], [2, 3]])
 ring = ZZ
-filename = 'conf-3-plane'
+save_result = False
+filename = 'conf-2-theta'
 verbose = True
+parallelize = True
 
 # Set up our graphs
 vertices = range(1, n + 1)
@@ -102,30 +105,60 @@ for nn, pm in enumerate(prod_mats):
 # The matrix cmb is the combination table.  The (i, j)-entry gives the index of the smallest prod mat that
 # contains the columns of the ith and jth prod mat.  If no such prod mat exists, the table gives -1.
 pmt = len(prod_mats)
-cmb = matrix(ZZ, pmt, pmt, [-1] * (pmt * pmt))
+cmb = zero_matrix(ZZ, pmt, pmt)
 
-for i in range(pmt):
-    cmb[i, i] = i
 
 if verbose:
     print 'Preparing combination table'
-z = 1
-zz = len(prod_mats) * (len(prod_mats) - 1) / 2
-for i in range(pmt):
+    print 'Total number of rows: ' + str(pmt)
+
+# for i in range(pmt):
+#     cmb[i, i] = i
+# z = 1
+# zz = len(prod_mats) * (len(prod_mats) - 1) / 2
+# for i in range(pmt):
+#     for j in range(i + 1, pmt):
+#         if verbose:
+#             print '\r' + str(z) + '/' + str(zz),
+#             sys.stdout.flush()
+#             z += 1
+#         p = nn_to_pm[i]
+#         q = nn_to_pm[j]
+#         both_cols = list(set(p.columns() + q.columns()))
+#         both_cols.sort()
+#         combined = block_matrix([[matrix(ZZ, n, 1, list(v)) for v in both_cols]], subdivide=False)
+#         combined.set_immutable()
+#         if combined in prod_mats:
+#             cmb[i, j] = pm_to_nn[combined]
+#             cmb[j, i] = cmb[i, j]
+
+def prep_cmb_row(i):
+    row = zero_matrix(ZZ, 1, pmt)
+    p_cols = nn_to_pm[i].columns()
     for j in range(i + 1, pmt):
-        if verbose:
-            print '\r' + str(z) + '/' + str(zz),
-            sys.stdout.flush()
-            z += 1
-        p = nn_to_pm[i]
         q = nn_to_pm[j]
-        both_cols = list(set(p.columns() + q.columns()))
+        both_cols = list(set(p_cols + q.columns()))
         both_cols.sort()
         combined = block_matrix([[matrix(ZZ, n, 1, list(v)) for v in both_cols]], subdivide=False)
         combined.set_immutable()
         if combined in prod_mats:
-            cmb[i, j] = pm_to_nn[combined]
-            cmb[j, i] = cmb[i, j]
+            row[0, j] = pm_to_nn[combined]
+        else:
+            row[0, j] = -1
+    if verbose:
+        if i % 100 == 0:
+            print 'Finished row ' + str(i)
+    return [row]
+
+if parallelize:
+    pool = Pool()
+    cmb_row_list = pool.map(prep_cmb_row, xrange(pmt))
+    pool.close()
+    pool.join()
+else:
+    cmb_row_list = [prep_cmb_row(i) for i in range(pmt)]
+cmb = block_matrix(cmb_row_list)
+cmb = cmb + cmb.transpose() + diagonal_matrix(range(pmt))
 
 
 # Check if a list of prod matrices can have their columns assembled into a single prod matrix
@@ -138,11 +171,6 @@ def index_compatible(list_of_indices):
         if cur == -1:
             return False
     return True
-
-
-
-
-
 
 
 # For each graph Gamma, compute the minimal prod matrices of type Gamma.
@@ -208,14 +236,12 @@ for d in range(-1, dim + 2):
             labels[d] += [graph] * len(batch)
 
 def f_law((d,), x, f, y):
-    #d = -dd
     if d in labels:
         return CatMat.identity_matrix(ring, Gop, labels[d])
     else:
         return CatMat.identity_matrix(ring, Gop, [])
 
 def d_law(x, (d,)):
-    #d = -dd
     if d in range(0, dim + 2):
         def d_entry(r, c):
             if c.is_face(r):
@@ -258,8 +284,9 @@ for x in G.objects:
     print h
     print
 
-diff_dict = {d: dgm.differential('*', (d,)) for d in range(-1, top_deg + 1)}
-save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target) for d in range(-1, top_deg + 1)}
+if save_result:
+    diff_dict = {d: dgm.differential('*', (d,)) for d in range(-1, top_deg + 1)}
+    save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target) for d in range(-1, top_deg + 1)}
 
-save(save_dict, filename)
-print 'small complex saved'
+    save(save_dict, filename)
+    print 'small complex saved'
