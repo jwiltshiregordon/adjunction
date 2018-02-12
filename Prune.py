@@ -2,6 +2,7 @@ from sage.all import matrix, zero_matrix, block_diagonal_matrix, block_matrix, v
 from CatMat import *
 
 
+# TODO: Use Smith form to find a large invertible matrix after a suitable change of basis
 
 # This code currently assumes that no two objects are isomorphic
 # i.e. that the category is skeletal

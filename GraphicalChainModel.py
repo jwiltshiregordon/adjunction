@@ -4,6 +4,9 @@ from multiprocessing import Pool
 from CatMat import FiniteCategory, CatMat, dgModule, TerminalCategory
 from Prune import *
 
+# Run this code to generate, prune, and save a chain model for graphical configuration space in a simplicial complex.
+# This code produces cofibrant objects in the projective model structure on complexes.
+
 # Set these values before running
 n = 3
 X = SimplicialComplex([[1, 2], [1, 3], [1, 4], [1, 5]])

@@ -2,10 +2,7 @@ from sage.all import *
 from CatMat import *
 from sage.all import vector, matrix, zero_matrix, identity_matrix, block_diagonal_matrix
 from sage.all import Matroid
-import sys
-sys.path.insert(0, '/Users/jwiltshiregordon/Dropbox/SageUseful')
-from ConfigurationSpace import power_complex
-from SimplicialComplexModel import *
+
 
 def Vertices(n):
     return range(1, n + 1)
@@ -139,111 +136,12 @@ def equivariant_complexes_d_law(x, (d,)):
 
 equivariant_complexes = dgModule(D, ring, equivariant_complexes_f_law, [equivariant_complexes_d_law])
 
-
-# Simplicial complex via minimal conf matrices
-
-def conf_matrices(n, X):
-    pc = power_complex(n, X)
-
-    def build_matrix(simplex):
-        mm = matrix(ZZ, simplex.dimension() + 1, n, [p for c in simplex for p in c]).transpose()
-        mm.set_immutable()
-        return mm
-
-    return [build_matrix(simplex) for d in pc.faces() if d >= 0 for simplex in pc.faces()[d]]
-
-
-
-def graphical_conf_matrices(edge_pairs, X):
-
-    def is_gamma_type(m):
-        return all(m.row(a - 1) != m.row(b - 1) for a, b in edge_pairs)
-
-    return [m for m in conf_matrices(n, X) if is_gamma_type(m)]
-
-
-
-def is_conf_matrix_somehow_minimal(m):
-    if m.ncols() == 1:
-        return True
-    baseline_irps = identical_row_pairs(m)
-    for c in range(m.ncols()):
-        mm = m.matrix_from_columns(range(c) + range(c + 1, m.ncols()))
-        if baseline_irps == identical_row_pairs(mm):
-            return False
-    return True
-
-
-
-def is_column_submatrix(m1, m2):
-    cc = m2.columns()
-    return all([c in cc for c in m1.columns()])
-
-
-def conf_matrix_poset(n, X):
-    return Poset(data=(conf_matrices(n, X), is_column_submatrix))
-
-
-
-def identical_row_pairs(m):
-    return [(a, b) for a, b in GraphEdges(n) if m.row(a-1) == m.row(b-1)]
-
-
-def distinct_row_pairs(m):
-    return [(a, b) for a, b in GraphEdges(n) if m.row(a-1) != m.row(b-1)]
-
-
-# Using the pruned model is probably always better
-def simplicial_complex(X):
-    cmp = conf_matrix_poset(n, X)
-    max_conf_mats = cmp.maximal_elements()
-    somehow_minimals = [cm for cm in cmp if is_conf_matrix_somehow_minimal(cm)]
-
-    def are_compat(conf_mats):
-        return any(all(is_column_submatrix(cm, mx) for cm in conf_mats) for mx in max_conf_mats)
-
-    prod_model = SimplicialComplex(from_characteristic_function=(are_compat, somehow_minimals))
-
-    models = {}
-    for g in Graphs(n):
-        models[g] = prod_model.generated_subcomplex(
-            [sm for sm in somehow_minimals if set(g).issubset(distinct_row_pairs(sm))])
-
-    def f_law((d,), x, f, y):
-        if d in models[x].faces():
-            rows = models[x].faces()[d]
-        else:
-            rows = []
-        if d in models[y].faces():
-            cols = models[y].faces()[d]
-        else:
-            cols = []
-        return matrix(ring, len(rows), len(cols), [1 if r == c else 0 for r in rows for c in cols])
-
-    def d_law(x, (d,)):
-        if d in models[x].faces():
-            rows = models[x].faces()[d]
-        else:
-            rows = []
-        if d + 1 in models[x].faces():
-            cols = models[x].faces()[d + 1]
-        else:
-            cols = []
-        def matrix_entry(r, c):
-            if r.is_face(c):
-                return (-1)**(c.faces().index(r))
-            return 0
-        return matrix(ring, len(rows), len(cols), [matrix_entry(r, c) for r in rows for c in cols])
-
-    return dgModule(D, ring, f_law, [d_law])
-
-
 # This code loads matrixwise information and returns pointwise.
 # Use it with OberwolfachPractice-style code.
 #
 # If you prefer to use the matrixwise dgModules directly,
 # then you will want the ProdConf-style code.
-# TODO: that code is returning wrong answers?
+# TODO: I don't think this code currently runs
 #
 # filename should be like 'conf-2-claw'
 # and should contain a dict of triples (source, data_vector, target)
@@ -272,20 +170,20 @@ def load_pruned_model(filename):
 
     return dgModule(D, ring, f_law, [d_law], target_cat=None)
 
-
-def load_unpruned_model(scx):
-    cx = simplicial_complex_model(scx)
-
-    def f_law((d,), x, f, y):
-        fm = D.free_module(ring, [Set(s) for s in cx.differential('*', (d,)).source])
-        return fm(x, f, y)
-
-    def d_law(x, (d,)):
-        fom = D.free_op_module(ring, [x])
-        return fom(cx.differential('*', (d,)))
-
-    return dgModule(D, ring, f_law, [d_law], target_cat=None)
-
+#
+# def load_unpruned_model(scx):
+#     cx = simplicial_complex_model(scx)
+#
+#     def f_law((d,), x, f, y):
+#         fm = D.free_module(ring, [Set(s) for s in cx.differential('*', (d,)).source])
+#         return fm(x, f, y)
+#
+#     def d_law(x, (d,)):
+#         fom = D.free_op_module(ring, [x])
+#         return fom(cx.differential('*', (d,)))
+#
+#     return dgModule(D, ring, f_law, [d_law], target_cat=None)
+#
 
 
 # If you are going to do a big one

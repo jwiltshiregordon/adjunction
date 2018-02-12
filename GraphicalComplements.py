@@ -2,7 +2,7 @@ from sage.all import *
 from CatMat import *
 from sage.all import vector, matrix, zero_matrix, identity_matrix, block_diagonal_matrix
 
-
+# TODO: Do I still need any of this code?
 
 def pos_one(x):
     return '*'

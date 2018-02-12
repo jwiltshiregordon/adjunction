@@ -53,7 +53,7 @@ def load_model(model_name):
     return dgModule(TerminalCategory, ring, f_law, [d_law], target_cat=D)
 
 # Make sure n matches because the code will run anyway
-space_X = load_model('conf-3-claw')
+space_X = load_model('conf-3-circle')
 space_Y = load_model('conf-3-plus')
 
 

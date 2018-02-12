@@ -1,5 +1,4 @@
 from CatMat import *
-from PruneOld import *
 from sage.all import vector, matrix
 
 
