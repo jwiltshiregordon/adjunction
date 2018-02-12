@@ -6,10 +6,10 @@ from Prune import *
 
 # Set these values before running
 n = 3
-X = SimplicialComplex([[1, 2], [1, 3], [2, 3]])
+X = SimplicialComplex([[1, 2], [1, 3], [1, 4], [1, 5]])
 ring = ZZ
-save_result = False
-filename = 'conf-2-theta'
+save_result = True
+filename = 'conf-3-plus'
 verbose = True
 parallelize = True
 

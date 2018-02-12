@@ -2,11 +2,7 @@ from sage.all import *
 from CatMat import *
 from CatMat import TerminalCategory
 from sage.all import vector, matrix, zero_matrix, identity_matrix, block_diagonal_matrix
-from sage.all import Matroid
-import sys
-sys.path.insert(0, '/Users/jwiltshiregordon/Dropbox/SageUseful')
-from ConfigurationSpace import power_complex
-from PruneOld import *
+
 
 
 
@@ -57,8 +53,8 @@ def load_model(model_name):
     return dgModule(TerminalCategory, ring, f_law, [d_law], target_cat=D)
 
 # Make sure n matches because the code will run anyway
-space_X = load_model('conf-3-circle')
-space_Y = load_model('conf-3-circle')
+space_X = load_model('conf-3-claw')
+space_Y = load_model('conf-3-plus')
 
 
 double_complex = dgModule.outer_tensor_product(space_X, space_Y)
@@ -78,10 +74,6 @@ def full_union_f_law(x, f, y):
     return matrix(ring, rr, cc, [1] * (rr * cc))
 
 full_union = MatrixRepresentation(D_squared, ring, full_union_f_law)
-
-# TODO: must use resolution for full_union here?
-
-
 
 Ch = ChainComplex({k:full_union(tot.differential(('*','*'), (k,))).transpose() for k in range(9)})
 h = Ch.homology()
