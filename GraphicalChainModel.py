@@ -1,10 +1,12 @@
 from sage.all import *
+from sage.all import vector, matrix, zero_matrix, block_matrix, diagonal_matrix
 import itertools
 from multiprocessing import Pool
 from CatMat import FiniteCategory, CatMat, dgModule, TerminalCategory
-from Prune import *
+from Prune import prune_dg_module_on_poset
 
 # Run this code to generate, prune, and save a chain model for graphical configuration space in a simplicial complex.
+# The saved model may be used by ProdConf to compute homology of configuration space in a product.
 # This code produces cofibrant objects in the projective model structure on complexes.
 
 # Set these values before running
@@ -41,9 +43,11 @@ if verbose:
 
 # Build the vertices of X^n
 
-# Given a list of dimensions, this function builds all integer matrices with first column zero,
-# last column dim_list, all columns distinct, and where consecutive entries in a row have difference 0 or 1.
+# Given a tuple of dimensions, this function builds all integer matrices with first column zero,
+# last column dim_tuple, all columns distinct, and where consecutive entries in a row have difference 0 or 1.
 gen_prod_mat = {}
+
+
 def generic_prod_mat(dim_tuple):
     if dim_tuple in gen_prod_mat:
         return gen_prod_mat[dim_tuple]
@@ -97,7 +101,7 @@ for simplex_tuple in itertools.product(nonempty_faces, repeat=n):
 pm_to_nn = {}
 nn_to_pm = {}
 gammas = {}
-nns_by_gamma = {graph:[] for graph in graphs}
+nns_by_gamma = {graph: [] for graph in graphs}
 for nn, pm in enumerate(prod_mats):
     pm_to_nn[pm] = nn
     nn_to_pm[nn] = pm
@@ -108,32 +112,10 @@ for nn, pm in enumerate(prod_mats):
 # The matrix cmb is the combination table.  The (i, j)-entry gives the index of the smallest prod mat that
 # contains the columns of the ith and jth prod mat.  If no such prod mat exists, the table gives -1.
 pmt = len(prod_mats)
-cmb = zero_matrix(ZZ, pmt, pmt)
-
-
 if verbose:
     print 'Preparing combination table'
     print 'Total number of rows: ' + str(pmt)
 
-# for i in range(pmt):
-#     cmb[i, i] = i
-# z = 1
-# zz = len(prod_mats) * (len(prod_mats) - 1) / 2
-# for i in range(pmt):
-#     for j in range(i + 1, pmt):
-#         if verbose:
-#             print '\r' + str(z) + '/' + str(zz),
-#             sys.stdout.flush()
-#             z += 1
-#         p = nn_to_pm[i]
-#         q = nn_to_pm[j]
-#         both_cols = list(set(p.columns() + q.columns()))
-#         both_cols.sort()
-#         combined = block_matrix([[matrix(ZZ, n, 1, list(v)) for v in both_cols]], subdivide=False)
-#         combined.set_immutable()
-#         if combined in prod_mats:
-#             cmb[i, j] = pm_to_nn[combined]
-#             cmb[j, i] = cmb[i, j]
 
 def prep_cmb_row(i):
     row = zero_matrix(ZZ, 1, pmt)
@@ -199,7 +181,7 @@ dim = prod_model.dimension()
 
 # for graph in graphs:
 #     Y = SimplicialComplex(from_characteristic_function=(index_compatible,
-#                                                         [i for gamma in graphs if graph.issubset(gamma) for i in min_prod_mat_indices_by_gamma[gamma]]))
+#                      [i for gamma in graphs if graph.issubset(gamma) for i in min_prod_mat_indices_by_gamma[gamma]]))
 #     print 'Graph ' + str(graph)
 #     for d in range(Y.dimension() + 1):
 #         print 'Faces of dimension ' + str(d) + ': ' + str(len(Y.n_faces(d)))
@@ -238,11 +220,13 @@ for d in range(-1, dim + 2):
             basis[d] += batch
             labels[d] += [graph] * len(batch)
 
+
 def f_law((d,), x, f, y):
     if d in labels:
         return CatMat.identity_matrix(ring, Gop, labels[d])
     else:
         return CatMat.identity_matrix(ring, Gop, [])
+
 
 def d_law(x, (d,)):
     if d in range(0, dim + 2):
@@ -260,18 +244,6 @@ def d_law(x, (d,)):
         return CatMat.identity_matrix(ring, Gop, [])
 
 dgm_big = dgModule(TerminalCategory, ring, f_law, [d_law], target_cat=Gop)
-
-# for k in range(0, 9):
-#     print 'computing differential in degree ' + str(k)
-#     dgm_big.differential('*', (k,))
-
-# for k in range(0, 9):
-#     mm = dgm.differential('*', (k,)) * dgm.differential('*', (k + 1,))
-#     is_zero = (mm == CatMat.zero_matrix(ring, Gop, mm.source, mm.target))
-#     print 'degree ' + str(k) + ' composition is zero: ' + str(is_zero)
-#     if not is_zero:
-#         view(LatexExpr(mm.to_latex()), tightpage=True)
-
 top_deg = 100
 dgm = prune_dg_module_on_poset(dgm_big, (0, top_deg), verbose=verbose, assume_sorted=True)
 
@@ -281,7 +253,7 @@ for x in G.objects:
     free = G.free_module(ring, [x])
     print 'Graph ' + str(x)
     print 'computing complex'
-    Ch = ChainComplex({k: free(dgm.differential('*', (k,)).transpose()) for k in range(9)})
+    Ch = ChainComplex({k: free(dgm.differential('*', (k,)).transpose()) for k in range(top_deg)})
     print 'computing homology'
     h = Ch.homology()
     print h
@@ -289,7 +261,8 @@ for x in G.objects:
 
 if save_result:
     diff_dict = {d: dgm.differential('*', (d,)) for d in range(-1, top_deg + 1)}
-    save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target) for d in range(-1, top_deg + 1)}
+    save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target)
+                 for d in range(-1, top_deg + 1)}
 
     save(save_dict, filename)
     print 'small complex saved'
