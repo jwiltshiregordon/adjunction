@@ -8,8 +8,8 @@ from sage.all import vector, matrix, zero_matrix, identity_matrix, block_diagona
 # To generate new files, use GraphicalChainModels.  In this code, models are assumed to be cofibrant.
 
 n = 3
-X_source = 'conf-3-interval'
-Y_source = 'conf-3-interval'
+X_source = 'conf-3-plus'
+Y_source = 'conf-3-circle-mod-rotation'
 ring = ZZ
 verbose = True
 
