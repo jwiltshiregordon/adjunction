@@ -10,11 +10,11 @@ from Prune import prune_dg_module_on_poset
 # This code produces cofibrant objects in the projective model structure on complexes.
 
 # Set these values before running
-n = 3
-X = SimplicialComplex([[1, 2], [1, 3], [1, 4], [1, 5]])
+n = 2
+X = SimplicialComplex([[1, 2], [1, 3], [2, 3], [2, 4], [3, 4]])
 ring = ZZ
 save_result = True
-filename = 'conf-3-plus'
+filename = 'conf-2-theta'
 verbose = True
 parallelize = True
 

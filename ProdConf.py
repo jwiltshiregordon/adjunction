@@ -8,8 +8,7 @@ from sage.all import vector, matrix, zero_matrix, identity_matrix, block_diagona
 # To generate new files, use GraphicalChainModels.  In this code, models are assumed to be cofibrant.
 
 n = 3
-X_source = 'conf-3-plus'
-Y_source = 'conf-3-circle-mod-rotation'
+factor_names = ['conf-3-theta', 'conf-3-circle-mod-rotation']
 ring = ZZ
 verbose = True
 
@@ -45,12 +44,11 @@ def load_model(model_name):
 
     return dgModule(TerminalCategory, ring, f_law, [d_law], target_cat=Gop)
 
-space_X = load_model(X_source)
-space_Y = load_model(Y_source)
-
-double_complex = dgModule.outer_tensor_product(space_X, space_Y)
-D_squared = double_complex.target_cat
-tot = double_complex.total_complex()
+q = len(factor_names)
+spaces = [load_model(X) for X in factor_names]
+multi_complex = dgModule.outer_tensor_product(*spaces)
+D_power = multi_complex.target_cat
+tot = multi_complex.total_complex()
 
 
 def graph_union(list_of_edge_sets):
@@ -62,9 +60,9 @@ def full_union_f_law(x, f, y):
     cc = 1 if graph_union(y) == edges else 0
     return matrix(ring, rr, cc, [1] * (rr * cc))
 
-full_union = MatrixRepresentation(D_squared, ring, full_union_f_law)
+full_union = MatrixRepresentation(D_power, ring, full_union_f_law)
 
-Ch = ChainComplex({k:full_union(tot.differential(('*','*'), (k,))).transpose() for k in range(9)})
+Ch = ChainComplex({k:full_union(tot.differential(('*',) * q, (k,))).transpose() for k in range(9)})
 h = Ch.homology()
 for d in h:
     print h[d]
