@@ -251,6 +251,6 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False, assume_sorted=False):
     def pruned_d_law(x, (d,)):
         if d in range(a - 1, b + 1):
             return diff_dict[d]
-        return dgm.differential((d,))
+        return dgm.differential(x, (d,))
 
     return dgModule(TerminalCategory, ring, pruned_f_law, [pruned_d_law], target_cat=cat)

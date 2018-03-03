@@ -3,12 +3,12 @@ from CatMat import TerminalCategory
 from sage.all import vector, matrix, zero_matrix, identity_matrix, block_diagonal_matrix
 
 # Set these values before running
-# The current choices for X_source and Y_source are file names in the current directory.
-# For example, you could use 'conf-3-interval' for both sources.
+# For example, set n = 3 and factor_names = ['conf-3-interval', 'conf-3-interval']
+# to compute the homology of three distinct points in the plane.
 # To generate new files, use GraphicalChainModels.  In this code, models are assumed to be cofibrant.
 
 n = 3
-factor_names = ['conf-3-theta', 'conf-3-circle-mod-rotation']
+factor_names = ['conf-3-theta', 'conf-3-r8']
 ring = ZZ
 verbose = True
 
@@ -62,7 +62,7 @@ def full_union_f_law(x, f, y):
 
 full_union = MatrixRepresentation(D_power, ring, full_union_f_law)
 
-Ch = ChainComplex({k:full_union(tot.differential(('*',) * q, (k,))).transpose() for k in range(9)})
+Ch = ChainComplex({k:full_union(tot.differential(('*',) * q, (k,))).transpose() for k in range(-2,29)})
 h = Ch.homology()
 for d in h:
-    print h[d]
+    print (d - 2, h[d])

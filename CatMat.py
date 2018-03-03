@@ -57,7 +57,8 @@ class FiniteCategory(object):
         self.cache = cache
 
         def default_object_latex_law(o):
-            return '\\texttt{' + str(o) + '}'
+            #return '\\texttt{' + str(o) + '}'
+            return latex(o)
 
         def default_morphism_latex_law(x, f, y):
             return '\\scalebox{.7}{\\fbox{\\texttt{' + f + '}}}'
@@ -219,6 +220,30 @@ class FiniteCategory(object):
             return matrix(ring, 1, 1, [1])
         return MatrixRepresentation(self, ring, law, target_cat=None)
 
+    def test(self):
+        for x in self.objects:
+            if self.identity(x) not in self.hom(x, x):
+                print 'The identity morphism for the object ' + str(x) + \
+                      ', which is supposed to be given by the string ' + self.identity(x) + \
+                      ', fails to appear in the hom-set ' + str(self.hom(x, x)) + '.'
+        for x in self.objects:
+            for y in self.objects:
+                for z in self.objects:
+                    for f in self.hom(x, y):
+                        for g in self.hom(y, z):
+                            if self.compose(x, f, y, g, z) not in self.hom(x, z):
+                                print 'The composition ' + str((x, f, y, g, z)) + ', which is supposed ' + \
+                                    'to be given by the string ' + self.compose(x, f, y, g, z) + \
+                                    ', fails to appear in the hom-set ' + str(self.hom(x, z)) + '. '
+        for w, x, y, z in itertools.product(*([self.objects] * 4)):
+            for f in self.hom(w, x):
+                for g in self.hom(x, y):
+                    for h in self.hom(y, z):
+                        left = self.compose(w, f, x, self.compose(x, g, y, h, z), z)
+                        right = self.compose(w, self.compose(w, f, x, g, y), y, h, z)
+                        if left != right:
+                            print 'The following triple of morphisms do not associate:'
+                            print (w, f, x, g, y, h, z)
 
 
 
@@ -461,8 +486,10 @@ class Functor(object):
         if (x, y) in self.acts:
             return self.acts[(x, y)]
         rows = self.source.hom(x, y)
-        cols = self.target.hom(x, y)
-        ret = matrix(ZZ, len(rows), len(cols), [1 if self.law(x, r, y) == c else 0 for r in rows for c in cols])
+        xx = self(x)
+        yy = self(y)
+        cols = self.target.hom(xx, yy)
+        ret = matrix(ZZ, len(rows), len(cols), [1 if self.law(x, r, y) == (xx, c, yy) else 0 for r in rows for c in cols])
         self.acts[(x, y)] = ret
         return ret
 
@@ -473,13 +500,14 @@ class Functor(object):
         if len(args) == 1:
             if isinstance(args[0], CatMat):
                 cm = args[0]
+                ring = cm.ring
                 vd = []
                 for i, x in enumerate(cm.source):
                     for j, y in enumerate(cm.target):
                         vd += cm.entry_vector(i, j) * self.action_matrix(x, y)
                 new_source = [self(x) for x in cm.source]
                 new_target = [self(y) for y in cm.target]
-                return CatMat(cm.sm, new_source, vector(cm.ring, vd), new_target)
+                return CatMat(ring, self.target, new_source, vector(cm.ring, vd), new_target)
             o = args[0]
             if o in self.objs:
                 return self.objs[o]
@@ -516,6 +544,15 @@ class Functor(object):
 
         return upper_star_function
 
+    def test(self):
+        for x in self.source.objects:
+            for y in self.source.objects:
+                for z in self.source.objects:
+                    for f in self.source.hom(x, y):
+                        for g in self.source.hom(y, z):
+                            if self(x, self.source.compose(x, f, y, g, z), z)[1] != \
+                              self.target.compose(self(x), self(x, f, y)[1], self(y), self(y, g, z)[1], self(z)):
+                                print 'Functoriality fails for the morphisms ' + str((x, f, y, g, z)) + '.'
 
 
 # CatMat is the class for matrices over a category
@@ -1039,6 +1076,12 @@ class CatMat(object):
         return ret
 
     def to_latex(self):
+        if len(self.source) == 0 or len(self.target) == 0:
+            ret = '\\mbox{A CatMat of format '
+            ret += '$' + str([self.cat.object_to_latex(o) + '\\,' for o in self.source])
+            ret += ' \\to '
+            ret += str([self.cat.object_to_latex(o) + '\\,' for o in self.target]) + '$}'
+            return ret
         latex.add_to_preamble("\\usepackage{blkarray}")
         ret = ''
         # ret = '\left(\n'
@@ -1057,6 +1100,9 @@ class CatMat(object):
         ret += '\\end{blockarray}\n'
         # ret += '\\right)'
         return ret
+
+    def show(self):
+        view(LatexExpr(self.to_latex()), tightpage=True)
 
     def __str__(self):
         # Should return a string for printing
@@ -1126,7 +1172,10 @@ class CatMat(object):
     # this is what you do.
     @classmethod
     def matrix_step_right(cls, m):
-        return matrix(m.right_kernel().gens()).transpose()
+        rk_gens = m.right_kernel().gens()
+        if len(rk_gens) == 0:
+            return zero_matrix(m.base_ring(), m.ncols(), 0)
+        return matrix(rk_gens).transpose()
 
     @classmethod
     def matrix_step_left(self, m):
@@ -1550,6 +1599,15 @@ class MatrixRepresentation(object):
             return CatMat.identity_matrix(self.ring, self.cat, d_law(x, (d - 1,)).target)
 
         return dgModule(TerminalCategory, self.ring, f_law, [d_law], target_cat=self.cat, cache=False)
+
+    # This method recomputes differentials
+    # so only use it if you want a single degree of homology.
+    def homology(self, degree):
+        res = self.resolution()
+        trivial_rep = self.cat.trivial_representation(self.ring)
+        diff_dict = {d: trivial_rep(res.differential('*', (d,))).transpose() for d in range(degree - 1, degree + 2)}
+        ch = ChainComplex(diff_dict)
+        return ch.homology(degree)
 
 
 
