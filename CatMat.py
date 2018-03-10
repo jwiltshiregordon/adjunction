@@ -1106,7 +1106,7 @@ class CatMat(object):
 
     def output_latex(self, filename):
         f = open(filename, 'w')
-        f.write('\\documentclass{article}\n\\usepackage{blkarray}\n\\usepackage{graphics}\\begin{document}\n$$')
+        f.write('\\documentclass{standalone}\n\\usepackage{blkarray}\n\\usepackage{graphics}\\begin{document}\n$$')
         f.write(self.to_latex())
         f.write('\n$$\n\\end{document}')
         f.close()
