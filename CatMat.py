@@ -1109,6 +1109,23 @@ class CatMat(object):
         # but for now we return the latex string
         return self.to_latex()
 
+    # Considering this CatMat as a presentation matrix for a self.cat module,
+    # returns a string describing the module at object x
+    def coker_at(self, x):
+        mi = self.cat.cofree_module(self.ring, [x])(self)
+        mc = ChainComplex({-1: mi})
+        return mc.homology(0)
+
+    def im_at(self, x):
+        mi = self.cat.cofree_module(self.ring, [x])(self)
+        fm = FreeModule(self.ring, mi.ncols())
+        return fm.submodule(mi.rows())
+
+    def ker_at(self, x):
+        mi = self.cat.cofree_module(self.ring, [x])(self)
+        mc = ChainComplex({0: mi})
+        return mc.homology(0)
+
     # TODO: if other is a scalar, then scale.  If it is a sagemath matrix, then perform a col op
     def __mul__(self, other):
         if len(self.target) != len(other.source):

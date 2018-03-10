@@ -20,7 +20,7 @@ def FA(objects):
 # The the category of totally-ordered sets with monotone injections
 # See Sam-Snowden's paper
 def OI_hom(x, y):
-    return ['*'] if x == 0 else [''.join([chr(v + 96) for v in w]) for w in Subsets(y, x)]
+    return ['*'] if x == 0 else [''.join([chr(v + 96) for v in sorted(list(w))]) for w in Subsets(y, x)]
 
 def OI(objects):
     return FiniteCategory(objects, FA_one, OI_hom, FA_comp)
