@@ -1097,12 +1097,19 @@ class CatMat(object):
                 ret += ' & ' + self.entry_to_latex(i, j)
             ret += '\\' + '\\' + '\n'
         ret += '\\end{block}\n'
-        ret += '\\end{blockarray}\n'
+        ret += '\\end{blockarray}'
         # ret += '\\right)'
         return ret
 
     def show(self):
         view(LatexExpr(self.to_latex()), tightpage=True)
+
+    def output_latex(self, filename):
+        f = open(filename, 'w')
+        f.write('\\documentclass{article}\n\\usepackage{blkarray}\n\\usepackage{graphics}\\begin{document}\n$$')
+        f.write(self.to_latex())
+        f.write('\n$$\n\\end{document}')
+        f.close()
 
     def __str__(self):
         # Should return a string for printing
