@@ -11,12 +11,14 @@ from Prune import prune_dg_module_on_poset
 
 # Set these values before running
 n = 2
-X = SimplicialComplex([[1, 2], [1, 3], [2, 3], [2, 4], [3, 4]])
+#X = SimplicialComplex([[1, 2], [1, 3], [2, 3], [2, 4], [3, 4]])
+X = SimplicialComplex([[1, 2]])
 ring = ZZ
 save_result = True
-filename = 'conf-2-theta'
+filename = 'conf-2-interval'
 verbose = True
 parallelize = True
+display_degree = 10
 
 # Set up our graphs
 vertices = range(1, n + 1)
@@ -229,15 +231,15 @@ def f_law((d,), x, f, y):
 
 
 def d_law(x, (d,)):
-    if d in range(0, dim + 2):
+    if d in range(-1, dim + 1):
         def d_entry(r, c):
             if c.is_face(r):
                 return (-1) ** r.faces().index(c)
             else:
                 return 0
-        source = labels[d]
-        target = labels[d - 1]
-        data_list = [d_entry(r, c) for r, x in zip(basis[d], labels[d]) for c, y in zip(basis[d - 1], labels[d - 1])
+        source = labels[d + 1]
+        target = labels[d]
+        data_list = [d_entry(r, c) for r, x in zip(basis[d + 1], labels[d + 1]) for c, y in zip(basis[d], labels[d])
                      if len(G.hom(x, y)) == 1]
         return CatMat(ring, G, source, vector(ring, data_list), target).transpose()
     else:
@@ -250,13 +252,13 @@ dgm = prune_dg_module_on_poset(dgm_big, (0, top_deg), verbose=verbose, assume_so
 print
 print 'Homological computation begins'
 for x in G.objects:
-    free = G.free_module(ring, [x])
+    cofree = Gop.cofree_module(ring, [x])
     print 'Graph ' + str(x)
     print 'computing complex'
-    Ch = ChainComplex({k: free(dgm.differential('*', (k,)).transpose()) for k in range(top_deg)})
+    ch = ChainComplex({-(k + 1): cofree(dgm.differential('*', (k,))) for k in range(-1, top_deg + 1)})
     print 'computing homology'
-    h = Ch.homology()
-    print h
+    for i in range(display_degree):
+        print 'H_' + str(i) + ' = ' + str(ch.homology(-i))
     print
 
 if save_result:

@@ -1101,8 +1101,8 @@ class CatMat(object):
         # ret += '\\right)'
         return ret
 
-    def show(self):
-        view(LatexExpr(self.to_latex()), tightpage=True)
+    def show(self, title='CatMat'):
+        view([LatexExpr(title), LatexExpr(self.to_latex())], title=title, tightpage=True)
 
     def output_latex(self, filename):
         f = open(filename, 'w')
@@ -1783,6 +1783,8 @@ class dgModule(object):
         def d_law(x, (d,)):
             s = list(WeightedIntegerVectors(n=d, weight=[1]*self.n_diff))
             t = list(WeightedIntegerVectors(n=d+1, weight=[1]*self.n_diff))
+            s = list(IntegerVectors(d, self.n_diff))
+            t = list(IntegerVectors(d + 1, self.n_diff))
             sources = [self.rank(tuple(v), x) for v in s]
             targets = [self.rank(tuple(w), x) for w in t]
             # Since s and t always have size at least 1 if n_diff > 0, this line is mostly ok
@@ -1821,6 +1823,14 @@ class dgModule(object):
 
         return dgModule(TerminalCategory, self.ring, ud_f_law, [ud_law_res] +
                                   [ud_laws_rep(k) for k in range(self.n_diff)])
+
+    def show(self, x, (a, b), title='DG-module'):
+        s = '\\bullet_{' + str(a) + '}'
+        if self.n_diff != 1:
+            raise NotImplementedError('Can only display a dgModule with a single differential.')
+        for d in range(a, b + 1):
+            s += ' \\xrightarrow{' + self.differential(x, (d,)).to_latex() + '} \\bullet_{' + str(d + 1) + '} '
+        view([LatexExpr(title), LatexExpr(s)], title=title, tightpage=True)
 
     # To build a resolution, you can imagine a resolution for each module in each multidegree.
     # Since we already know how to compute these resolutions, the task
