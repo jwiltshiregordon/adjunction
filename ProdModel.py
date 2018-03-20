@@ -8,14 +8,14 @@ from Prune import prune_dg_module_on_poset
 # to compute the homology of three distinct points in the plane.
 # To generate new files, use GraphicalChainModels.  In this code, models are assumed to be cofibrant.
 
-n = 2
-factor_names = ['conf-2-r4', 'conf-2-r4']
+n = 3
+factor_names = ['conf-3-claw*claw', 'conf-3-claw*claw']
 ring = ZZ
 save_result = True
-filename = 'conf-2-r8'
+filename = 'conf-3-claw^4'
 verbose = True
 top_deg = 90
-display_degree = 10
+display_degree = 12
 
 # Set up our graphs
 vertices = range(1, n + 1)

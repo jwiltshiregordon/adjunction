@@ -1832,6 +1832,27 @@ class dgModule(object):
             s += ' \\xrightarrow{' + self.differential(x, (d,)).to_latex() + '} \\bullet_{' + str(d + 1) + '} '
         view([LatexExpr(title), LatexExpr(s)], title=title, tightpage=True)
 
+
+    def apply_matrix_rep(self, matrix_rep):
+        def f_law(dd, x, f, y):
+            return matrix_rep(self.module_in_degree(dd)(x, f, y))
+
+        def kth_d_law(k):
+            def d_law(x, dd):
+                return matrix_rep(self.differential(x, dd, a=k))
+            return d_law
+
+        return dgModule(self.cat, self.ring, f_law, [kth_d_law(k) for k in range(self.n_diff)],
+                        target_cat=matrix_rep.target_cat)
+
+    # TODO: implement every entry on every page of all the spectral sequences
+    # Note that homology means we will transpose everything
+    def homology(self, x, k):
+        assert self.n_diff == 1
+        assert self.target_cat is None
+        ch = ChainComplex({-1: self.differential(x, (k,)), 0: self.differential(x, (k - 1,))})
+        return ch.homology(0)
+
     # To build a resolution, you can imagine a resolution for each module in each multidegree.
     # Since we already know how to compute these resolutions, the task
     # is to stitch these resolutions together.
