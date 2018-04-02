@@ -10,12 +10,12 @@ from Prune import prune_dg_module_on_poset
 # This code produces cofibrant objects in the projective model structure on complexes.
 
 # Set these values before running
-n = 2
-#X = SimplicialComplex([[1, 2], [1, 3], [2, 3], [2, 4], [3, 4]])
-X = simplicial_complexes.RealProjectivePlane()
+n = 3
+X = SimplicialComplex([[1, 2], [1, 3], [2, 3]])
+#X = simplicial_complexes.RealProjectivePlane()
 ring = ZZ
 save_result = True
-filename = 'conf-2-rp2'
+filename = 'conf-3-circle'
 verbose = True
 parallelize = True
 display_degree = 10

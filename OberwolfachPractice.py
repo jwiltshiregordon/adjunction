@@ -84,7 +84,7 @@ space_X = load_pruned_model('conf-3-circle')
 # space_X = load_unpruned_model(SimplicialComplex([[1, 2]]))
 # space_Y = load_pruned_model('conf-2-interval')
 
-sys.exit(0)
+
 
 
 

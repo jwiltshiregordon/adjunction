@@ -329,9 +329,18 @@ TerminalCategory = FiniteCategory(['*'], terminal_one, terminal_hom, terminal_co
 # More efficient than naively recomputing
 class ProductCategory(FiniteCategory):
 
-    def __init__(self, *list_of_cats):
-        self.cats = list_of_cats
-        self.ecats = list(enumerate(list_of_cats))
+    def __init__(self, arg0, *list_of_cats):
+        if type(arg0) is str:
+            self.left = '('
+            self.sep = arg0
+            self.right = ')'
+            self.cats = list(list_of_cats)
+        else:
+            self.left = '('
+            self.sep = ','
+            self.right = ')'
+            self.cats = [arg0] + list(list_of_cats)
+        self.ecats = list(enumerate(self.cats))
         self.n_factors = len(self.cats)
         # If the number of factors is one
         # the convention is to have the same objects
@@ -340,9 +349,7 @@ class ProductCategory(FiniteCategory):
             self.objects = list_of_cats[0].objects
         else:
             self.objects = list(itertools.product(*[cat.objects for cat in self.cats]))
-        self.left = '('
-        self.sep = ','
-        self.right = ')'
+
         def oll(o):
             if self.n_factors == 1:
                 return self.cats[0].object_to_latex(o)
@@ -365,6 +372,9 @@ class ProductCategory(FiniteCategory):
         self.object_latex_law = oll
         self.morphism_latex_law = mll
         self.op_cat = None
+
+        self.mns = {}
+        self.msn = {}
 
     def identity(self, x):
         if self.n_factors == 1:
@@ -402,6 +412,7 @@ class ProductCategory(FiniteCategory):
             ts += s + self.sep
         return ts[:-1] + self.right
 
+    # TODO: This code is badly broken for products of products
     def break_string(self, s):
         # If the string is not a tuple, then we may have a zero- or one-fold product
         if s[:len(self.left)] != self.left or s[-len(self.right):] != self.right:
@@ -432,10 +443,11 @@ class ProductCategory(FiniteCategory):
         ret = matrix(ZZ, 1, 1, [1])
         fb = self.break_string(f)
         for i, cat in self.ecats:
-            kf = cat.left_action_matrix(x[i], fb[i], z[i], y[i])
-            ret_n_rows *= kf.n_rows()
-            ret_n_cols *= kf.n_cols()
-            ret = ret.tensor_product(kf)
+            kf = cat.middle_action_matrix(x[i], fb[i], z[i], y[i])
+            ret_n_rows *= kf.nrows()
+            ret_n_cols *= kf.ncols()
+            if ret_n_rows * ret_n_cols != 0:
+                ret = ret.tensor_product(kf)
         # This is to avoid a 0-dim bug present in my version of sage
         if ret_n_rows * ret_n_cols == 0:
             return matrix(ZZ, ret_n_rows, ret_n_cols, [])
@@ -465,7 +477,6 @@ class ProductCategory(FiniteCategory):
             self.op_cat = ProductCategory(*[cat.op() for cat in self.cats])
             self.op_cat.op_cat = self
         return self.op_cat
-
 
 
 class Functor(object):
@@ -918,7 +929,13 @@ class CatMat(object):
         return CatMat.block_matrix(table, ring=ring, cat=cat, sources=sources, targets=targets)
 
     @classmethod
-    def kronecker_product(cls, *mats):
+    def kronecker_product(cls, *mats_pre):
+        if type(mats_pre[0]) is str:
+            sep = mats_pre[0]
+            mats = mats_pre[1:]
+        else:
+            sep = ','
+            mats = mats_pre
         row_counts = [range(m.nrows()) for m in mats]
         col_counts = [range(m.ncols()) for m in mats]
 
@@ -926,7 +943,7 @@ class CatMat(object):
 
         cmf = [i for i, m in enumerate(mats) if isinstance(m, CatMat)]
         cat_factors = [mats[i].cat for i in cmf]
-        prod_cat = ProductCategory(*cat_factors)
+        prod_cat = ProductCategory(sep, *cat_factors)
 
         one_fold = (len(cat_factors) == 1)
 
@@ -1611,18 +1628,18 @@ class MatrixRepresentation(object):
 
         def d_law(x, (d,)):
             if d <= -2:
-                return CatMat.identity_matrix(self.ring, self.cat, [])
+                return CatMat.identity_matrix(self.ring, self.res[0].cat, [])
             if d == -1:
-                return CatMat.zero_matrix(self.ring, self.cat, [], self.res[0].source)
+                return CatMat.zero_matrix(self.ring, self.res[0].cat, [], self.res[0].source)
             if d in self.res:
                 return self.res[d]
             self.res[d] = +d_law(x, (d - 1,))
             return self.res[d]
 
         def f_law((d,), x, f, y):
-            return CatMat.identity_matrix(self.ring, self.cat, d_law(x, (d - 1,)).target)
+            return CatMat.identity_matrix(self.ring, self.res[0].cat, d_law(x, (d - 1,)).target)
 
-        return dgModule(TerminalCategory, self.ring, f_law, [d_law], target_cat=self.cat, cache=False)
+        return dgModule(TerminalCategory, self.ring, f_law, [d_law], target_cat=self.res[0].cat, cache=False)
 
     # This method recomputes differentials
     # so only use it if you want a single degree of homology.
@@ -1704,7 +1721,13 @@ class dgModule(object):
 
 
     @classmethod
-    def outer_tensor_product(cls, *args):
+    def outer_tensor_product(cls, *args_pre):
+        if type(args_pre[0]) is str:
+            sep = args_pre[0]
+            args = args_pre[1:]
+        else:
+            sep = ','
+            args = args_pre
         q = len(args)
         # Figure out the ring
         if len(args) == 0:
@@ -1713,9 +1736,9 @@ class dgModule(object):
             ring = args[0].ring
 
         # Find the new source and target categories
-        new_source = ProductCategory(*[otf.cat for otf in args])
+        new_source = ProductCategory(sep, *[otf.cat for otf in args])
         if any([otf.cat_mat for otf in args]):
-            new_target = ProductCategory(*[otf.target_cat for otf in args if otf.cat_mat])
+            new_target = ProductCategory(sep, *[otf.target_cat for otf in args if otf.cat_mat])
         else:
             new_target = None
 
@@ -1737,7 +1760,7 @@ class dgModule(object):
                 x = xx[i]
                 y = yy[i]
                 kf += [args[i].structure_map(degree_tuple[ds[i]:ds[i + 1]], x, f, y)]
-            return CatMat.kronecker_product(*kf)
+            return CatMat.kronecker_product(sep, *kf)
 
 
         # Define the differential laws
@@ -1755,7 +1778,7 @@ class dgModule(object):
                         kf += [identity_matrix(ring, otf.rank(deg, x))]
                 i, j = diff_dict[k]
                 kf[k] = args[i].differential(x_tuple[i], degree_tuple[ds[i]:ds[i + 1]], j)
-                return CatMat.kronecker_product(*kf)
+                return CatMat.kronecker_product(sep, *kf)
             return d_law
 
         return dgModule(new_source, ring, f_law, [kth_d_law(k) for k in range(q)], target_cat=new_target)
@@ -1781,8 +1804,6 @@ class dgModule(object):
             return dlbe
 
         def d_law(x, (d,)):
-            s = list(WeightedIntegerVectors(n=d, weight=[1]*self.n_diff))
-            t = list(WeightedIntegerVectors(n=d+1, weight=[1]*self.n_diff))
             s = list(IntegerVectors(d, self.n_diff))
             t = list(IntegerVectors(d + 1, self.n_diff))
             sources = [self.rank(tuple(v), x) for v in s]

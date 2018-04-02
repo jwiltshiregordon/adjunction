@@ -9,12 +9,12 @@ from Prune import prune_dg_module_on_poset
 # To generate new files, use GraphicalChainModels.  In this code, models are assumed to be cofibrant.
 
 n = 3
-factor_names = ['conf-3-claw*claw', 'conf-3-claw*claw']
+factor_names = ['conf-3-r4', 'conf-3-interval']
 ring = ZZ
 save_result = True
-filename = 'conf-3-claw^4'
+filename = 'conf-3-r5'
 verbose = True
-top_deg = 90
+top_deg = 30
 display_degree = 12
 
 # Set up our graphs
