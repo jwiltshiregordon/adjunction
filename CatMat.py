@@ -622,6 +622,8 @@ class CatMat(object):
             raise SyntaxError('Matrix cannot be built from this data_vector, which has rank '
                               + str(len(data_vector)) + '.  Expected rank: ' + str(count))
 
+        self.res = {0: self}
+
     def nrows(self):
         return len(self.source)
 
@@ -1118,8 +1120,11 @@ class CatMat(object):
         # ret += '\\right)'
         return ret
 
-    def show(self, title='CatMat'):
-        view([LatexExpr(title), LatexExpr(self.to_latex())], title=title, tightpage=True)
+    def show(self, title=None):
+        if title is None:
+            view([LatexExpr(self.to_latex())], tightpage=True)
+        else:
+            view([LatexExpr(title), LatexExpr(self.to_latex())], title=title, tightpage=True)
 
     def output_latex(self, filename):
         f = open(filename, 'w')
@@ -1348,6 +1353,21 @@ class CatMat(object):
     def __pos__(self):
         return self.step_right()
 
+    def step_right_dgModule(self):
+        def d_law(x, (d,)):
+            if d <= -2:
+                return CatMat.identity_matrix(self.ring, self.cat, [])
+            if d == -1:
+                return CatMat.zero_matrix(self.ring, self.cat, [], self.source)
+            if d in self.res:
+                return self.res[d]
+            self.res[d] = +d_law(x, (d - 1,))
+            return self.res[d]
+
+        def f_law((d,), x, f, y):
+            return CatMat.identity_matrix(self.ring, self.cat, d_law(x, (d - 1,)).target)
+
+        return dgModule(TerminalCategory, self.ring, f_law, [d_law], target_cat=self.cat, cache=False)
 
 
 
@@ -1873,6 +1893,18 @@ class dgModule(object):
         assert self.target_cat is None
         ch = ChainComplex({-1: self.differential(x, (k,)), 0: self.differential(x, (k - 1,))})
         return ch.homology(0)
+
+    def cohomology(self, x, k):
+        assert self.n_diff == 1
+        assert self.target_cat is None
+        ch = ChainComplex({-1: self.differential(x, (k - 1,)).transpose(), 0: self.differential(x, (k,)).transpose()})
+        return ch.homology(0)
+
+    def cohomology_generators(self, x, k):
+        assert self.n_diff == 1
+        assert self.target_cat is None
+        ch = ChainComplex({-1: self.differential(x, (k - 1,)).transpose(), 0: self.differential(x, (k,)).transpose()})
+        return ch.homology(0, generators=True)
 
     # To build a resolution, you can imagine a resolution for each module in each multidegree.
     # Since we already know how to compute these resolutions, the task

@@ -12,7 +12,7 @@ def FA_hom(x, y):
 def FA_comp(x, f, y, g, z):
     return '*' if x == 0 else ''.join([tuple(g)[ord(c) - 97] for c in tuple(f)])
 
-def FA(objects):
+def FA(objects=[]):
     return FiniteCategory(objects, FA_one, FA_hom, FA_comp)
 
 
@@ -22,7 +22,7 @@ def FA(objects):
 def OI_hom(x, y):
     return ['*'] if x == 0 else [''.join([chr(v + 96) for v in sorted(list(w))]) for w in Subsets(y, x)]
 
-def OI(objects):
+def OI(objects=[]):
     return FiniteCategory(objects, FA_one, OI_hom, FA_comp)
 
 # OA
@@ -43,7 +43,7 @@ def OA(objects):
 def FI_hom(x, y):
     return ['*'] if x == 0 else [''.join([chr(v + 96) for v in w]) for w in Permutations(y, x)]
 
-def FI(objects):
+def FI(objects=[]):
     return FiniteCategory(objects, FA_one, FI_hom, FA_comp)
 
 
@@ -119,6 +119,21 @@ def FI_to_ncFin(objects):
         return x, m, y
     return Functor(FI(objects), law, ncFin(objects))
 
+# The indecomposable flat FI-modules of Patzt and Wiltshire-Gordon
+def FI_flat(k):
+    def law(x, f, y):
+        def entry(r, c):
+            if any(ord(f[r[i] - 1]) - 96 != c[i] for i in range(k)):
+                return 0
+            if any(c.index(ord(f[r[i] - 1]) - 96) >= c.index(ord(f[r[i + 1] - 1]) - 96) for i in range(k, len(r) - 1)):
+                return 0
+            return 1
+        rows = [] if x < k else Permutations(x)
+        cols = [] if y < k else Permutations(y)
+        if k == 0 and x == 0:
+            return matrix(ZZ, 1, len(cols), [1] * len(cols))
+        return matrix(ZZ, len(rows), len(cols), [entry(r, c) for r in rows for c in cols])
+    return MatrixRepresentation(FI(), ZZ, law)
 
 F = FI_to_ncFin([0, 1, 2, 3])
 F.test()
