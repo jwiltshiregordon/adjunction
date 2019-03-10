@@ -9,18 +9,25 @@ from Prune import prune_dg_module_on_poset
 # The saved model may be used by ProdConf to compute homology of configuration space in a product.
 # This code produces cofibrant objects in the projective model structure on complexes.
 
-# Set these values before running
-n = 3
-X = SimplicialComplex([[2,3,4],[1,3,4],[1,2,4],[1,2,3]])
-#X = simplicial_complexes.RealProjectivePlane()
-ring = ZZ
-save_result = True
-filename = 'conf-3-sphere'
-verbose = True
-parallelize = True
-display_degree = 10
+def prep_cmb_row((i, n, pmt, nn_to_pm, prod_mats, pm_to_nn)):
+    row = zero_matrix(ZZ, 1, pmt)
+    p_cols = nn_to_pm[i].columns()
+    for j in range(i + 1, pmt):
+        q = nn_to_pm[j]
+        both_cols = list(set(p_cols + q.columns()))
+        both_cols.sort()
+        combined = block_matrix([[matrix(ZZ, n, 1, list(v)) for v in both_cols]], subdivide=False)
+        combined.set_immutable()
+        if combined in prod_mats:
+            row[0, j] = pm_to_nn[combined]
+        else:
+            row[0, j] = -1
+    if verbose:
+        if i % 100 == 0:
+            print 'Finished row ' + str(i)
+    return [row]
 
-def conf_model(n, X, ring=ZZ, output_file_name=None, verbose=True, parallelize=True, display_degree=7):
+def conf_model(n, X, ring=ZZ, output_file_name=None, verbose=False, parallelize=True, display_degree=7):
 
     # Set up our graphs
     vertices = range(1, n + 1)
@@ -121,27 +128,34 @@ def conf_model(n, X, ring=ZZ, output_file_name=None, verbose=True, parallelize=T
         print 'Total number of rows: ' + str(pmt)
 
 
-    def prep_cmb_row(i):
-        row = zero_matrix(ZZ, 1, pmt)
-        p_cols = nn_to_pm[i].columns()
-        for j in range(i + 1, pmt):
-            q = nn_to_pm[j]
-            both_cols = list(set(p_cols + q.columns()))
-            both_cols.sort()
-            combined = block_matrix([[matrix(ZZ, n, 1, list(v)) for v in both_cols]], subdivide=False)
-            combined.set_immutable()
-            if combined in prod_mats:
-                row[0, j] = pm_to_nn[combined]
-            else:
-                row[0, j] = -1
-        if verbose:
-            if i % 100 == 0:
-                print 'Finished row ' + str(i)
-        return [row]
+    # def prep_cmb_row(i):
+    #     row = zero_matrix(ZZ, 1, pmt)
+    #     p_cols = nn_to_pm[i].columns()
+    #     for j in range(i + 1, pmt):
+    #         q = nn_to_pm[j]
+    #         both_cols = list(set(p_cols + q.columns()))
+    #         both_cols.sort()
+    #         combined = block_matrix([[matrix(ZZ, n, 1, list(v)) for v in both_cols]], subdivide=False)
+    #         combined.set_immutable()
+    #         if combined in prod_mats:
+    #             row[0, j] = pm_to_nn[combined]
+    #         else:
+    #             row[0, j] = -1
+    #     if verbose:
+    #         if i % 100 == 0:
+    #             print 'Finished row ' + str(i)
+    #     return [row]
 
     if parallelize:
         pool = Pool()
-        cmb_row_list = pool.map(prep_cmb_row, xrange(pmt))
+
+        def arg_gen(zed):
+            num = 0
+            while num < zed:
+                yield (num, n, pmt, nn_to_pm, prod_mats, pm_to_nn)
+                num += 1
+
+        cmb_row_list = pool.map(prep_cmb_row, arg_gen(pmt))
         pool.close()
         pool.join()
     else:
@@ -270,3 +284,6 @@ def conf_model(n, X, ring=ZZ, output_file_name=None, verbose=True, parallelize=T
 
         save(save_dict, '/Users/jwiltshiregordon/Dropbox/GraphicalChainModels/' + output_file_name)
         print 'Pruned complex saved to ' + output_file_name + '.sobj'
+
+
+conf_model(2, SimplicialComplex([[1,2,3]]))
