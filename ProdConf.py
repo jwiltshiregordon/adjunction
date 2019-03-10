@@ -5,10 +5,10 @@ from sage.all import vector, matrix, zero_matrix, identity_matrix, block_diagona
 # Set these values before running
 # For example, set n = 3 and factor_names = ['conf-3-interval', 'conf-3-interval']
 # to compute the homology of three distinct points in the plane.
-# To generate new files, use GraphicalChainModels.  In this code, models are assumed to be cofibrant.
+# To generate new files, use GraphicalChainModel.  In this code, models are assumed to be cofibrant.
 
 n = 3
-factor_names = ['conf-3-theta', 'conf-3-r8']
+factor_names = ['conf-3-interval', 'conf-3-interval']
 ring = ZZ
 verbose = True
 
@@ -65,4 +65,6 @@ full_union = MatrixRepresentation(D_power, ring, full_union_f_law)
 Ch = ChainComplex({k:full_union(tot.differential(('*',) * q, (k,))).transpose() for k in range(-2,29)})
 h = Ch.homology()
 for d in h:
-    print (d - 2, h[d])
+    print (d, h[d])
+
+print Ch.differential(-1).dimensions()

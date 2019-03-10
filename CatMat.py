@@ -12,6 +12,16 @@ from collections import Iterable
 
 # TODO: support for unit-counit tensor-hom adjunction for bimodules
 # TODO: bring the ring into the category to get additive categories
+# TODO: preadditive categories with homs that are free abelian
+# TODO: eventually, dg-categories
+
+# TODO: main next steps: fix product categories; introduce preadditive cats
+# TODO: sparse vs. dense matrices.  Reimplement CatMat to be sparse, I think
+# TODO: parallel computation
+# TODO: indexed matrices should be a category whose objects are injective tuples
+# TODO: so that we obtain unique compatible reorderings whenever required.
+
+# TODO: new version should not have functions as arguments, but instead use overload
 
 
 # Constructing a FiniteCategory using __init__
@@ -834,6 +844,12 @@ class CatMat(object):
                         found = True
                         break
                 if not found:
+                    # TODO:
+                    # There is another way to infer sources and targets
+                    # when a nonzero scalar appears in the table
+                    # we know that multiple of the identity matrix goes there
+                    # and so that block is square.
+                    # It makes sense to use this information in practice.
                     raise SyntaxError('Could not infer source of row ' + str(i))
         if targets is None:
             targets = []
@@ -922,7 +938,8 @@ class CatMat(object):
         if cat is None:
             try:
                 return block_diagonal_matrix(cat_mats)
-            except TypeError:
+            # AttributeError?
+            except (TypeError, AttributeError):
                 cat = cat_mats[0].cat
 
         sources = [m.source for m in cat_mats]
