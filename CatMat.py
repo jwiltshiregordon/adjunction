@@ -1823,7 +1823,8 @@ class dgModule(object):
     def total_complex(self):
         def f_law((d,), x, f, y):
             b_summands = []
-            for v in WeightedIntegerVectors(n=d, weight=[1]*self.n_diff):
+            #for v in WeightedIntegerVectors(n=d, weight=[1]*self.n_diff):
+            for v in list(IntegerVectors(d, self.n_diff)):
                 b_summands += [self.structure_map(tuple(v), x, f, y)]
             # The following line will also work if cat_mat is false
             return CatMat.block_diagonal(b_summands, self.ring, self.target_cat)
