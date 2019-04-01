@@ -20,8 +20,10 @@ from collections import Iterable
 # TODO: parallel computation
 # TODO: indexed matrices should be a category whose objects are injective tuples
 # TODO: so that we obtain unique compatible reorderings whenever required.
+# TODO: (actually, two matrices should refuse to multiply if their labelings are different)
 
 # TODO: new version should not have functions as arguments, but instead use overload
+# TODO: and consequently, CatMats will be pickleable.
 
 
 # Constructing a FiniteCategory using __init__
@@ -201,13 +203,9 @@ class FiniteCategory(object):
                 ret = ret.block_sum(self.left_action_matrix(x, f, y, d).transpose())
             return ret
 
-        # The module is not really a dgModule
-        # since the number of differentials is zero.
-        # target_cat=None since we output usual sage matrices
-        # instead of CatMats, as is allowed with dgModules.
         return MatrixRepresentation(self, ring, law, target_cat=None)
 
-    # This should be reimplemented to avoid recomputing structure matrices
+    # TODO: reimplement to avoid recomputing structure matrices
     def full_subcategory_inclusion(self, objects):
         def full_subcat_one(x):
             return self.identity(x)
@@ -495,6 +493,8 @@ class Functor(object):
     # law(x, f, y)
     # that returns a triple (x', f', y')
     # and must be functorial.
+    #
+    # What if I want to build a functor from its action matrices?  This should be allowed.
 
     def __init__(self, source, law, target):
         self.source = source
@@ -564,6 +564,16 @@ class Functor(object):
                                 [d_laws(k) for k in range(module.n_diff)], target_cat=module.target_cat)
 
         return upper_star_function
+
+
+    # Gives the entrywise action of this functor on a matrix space of format (source, target)
+    def matrix_action_matrix(functor, source, target):
+        blocks = []
+        for x in source:
+            for y in target:
+                blocks += [functor.action_matrix(x, y)]
+        return block_diagonal_matrix(blocks)
+
 
     def test(self):
         for x in self.source.objects:
@@ -1048,6 +1058,31 @@ class CatMat(object):
 
         return CatMat.block_matrix(blocks, cat=prod_cat)
 
+
+    @classmethod
+    def matrix_postcompose_op(cls, source, matrix):
+        cat = matrix.cat
+        free = cat.free_module(ZZ, source)
+        return free(matrix)
+
+
+    @classmethod
+    def matrix_precompose_op(cls, matrix, target):
+        cat = matrix.cat
+        return block_diagonal_matrix([cat.cofree_module(ZZ, [t])(matrix) for t in target]).transpose()
+
+    # These are the correct direction to match the convention in CatMat constructor
+    # This code produces a sagemath matrix that acts on the right
+    @classmethod
+    def matrix_postcompose(cls, source, matrix):
+        return cls.matrix_precompose_op(matrix.transpose(), source)
+
+    # This code produces a sagemath matrix that acts on the right, even though we often
+    # want to think of precomposition on the left.
+    @classmethod
+    def matrix_precompose(cls, matrix, target):
+        return cls.matrix_postcompose_op(target, matrix.transpose())
+
     # Returns a CatMat with a single column
     def column(self, j):
         vd = []
@@ -1150,10 +1185,81 @@ class CatMat(object):
         f.write('\n$$\n\\end{document}')
         f.close()
 
+
+    # Returns a string representation of the entry in position i, j
+    def entry_string(self, i, j):
+        def number_to_coefficient_string_leading(a):
+            s = str(a)
+            if s == '1':
+                return ''
+            if s == '-1':
+                return '-'
+            return s
+
+        def number_to_coefficient_string_nonleading(a):
+            s = str(a)
+            if s == '1':
+                return ' + '
+            if s == '-1':
+                return ' - '
+            if s[0] == '-':
+                return ' - ' + s[1:]
+            return ' + ' + s
+
+        a = ''
+        x = self.source[i]
+        y = self.target[j]
+        v = self.entry_vector(i, j)
+        leading_term = True
+        for i, f in enumerate(self.cat.hom(x, y)):
+            if v[i] != 0:
+                if leading_term:
+                    cs = number_to_coefficient_string_leading(v[i])
+                    a += cs + f
+                    leading_term = False
+                else:
+                    cs = number_to_coefficient_string_nonleading(v[i])
+                    a += cs + f
+        if a == '':
+            return '0'
+        return a
+
+    # Returns a list of lists of the entries of this CatMat expressed as strings
+    def string_entries(self):
+        table = []
+        for i in range(self.nrows()):
+            row = []
+            for j in range(self.ncols()):
+                row += [self.entry_string(i, j)]
+            table += [row]
+        return table
+
     def __str__(self):
-        # Should return a string for printing
-        # but for now we return the latex string
-        return self.to_latex()
+        table = self.string_entries()
+        a = '['
+        for row in table:
+            a += '['
+            for entry in row:
+                a += entry + ','
+            a = a[:-1] + '],'
+        return str(self.source) + ' ---'+ a[:-1] + ']--> ' + str(self.target)
+
+
+    # Pretty-print this CatMat
+    def pp(self):
+        if self.nrows() == 0 or self.ncols() == 0:
+            return str(self.source) + ' ---> ' + str(self.target)
+
+        table = self.string_entries()
+        for i, x in enumerate(self.source):
+            table[i] = [str(x) + ' ['] + table[i]
+        table = [[''] + [str(y) for y in self.target]] + table
+        widths = [3 + max(len(row[j]) for row in table) for j in range(len(table[0]))]
+        widths[0] += -2
+        format_string = ''.join('{:^' + str(w) + '}' for w in widths)
+        for i, row in enumerate(table):
+            print format_string.format(*row) + (']' if i > 0 else '')
+        return
 
     # Considering this CatMat as a presentation matrix for a self.cat module,
     # returns a string describing the module at object x
@@ -2130,6 +2236,47 @@ class dgModule(object):
 
 
 
+# This is where things get interesting
+# The full adjunction is determined by the left adjoint
+# Providing the counit and right adjoint on objects makes it practical to solve for the right adjoint on morphisms
+class Adjunction(object):
+    # Current implementation is proof-of-concept only.
+    # Later we will accept many ways of specifying an adjunction between additive categories
+    def __init__(self, left_adjoint, right_obj, counit):
+        self.left_cat = left_adjoint.source
+        self.right_cat = left_adjoint.target
+        self.left_functor = left_adjoint
+        self.right_obj = right_obj
+        self.counit = counit
+
+        def left_obj(x):
+            return [self.left_functor(xx) for xx in x]
+
+
+        self.left_obj = left_obj
+
+
+        def right_adjoint_action(x, y):
+            rx = self.right_obj(x)
+            ry = self.right_obj(y)
+            lrx = self.left_obj(rx)
+
+            l_action = self.left_functor.matrix_action_matrix(rx, ry)
+            lrx_varepsilon_y = CatMat.matrix_postcompose(lrx, self.counit(y))
+            iso = l_action * lrx_varepsilon_y
+            return CatMat.matrix_precompose(self.counit(x), [y]) * iso.inverse()
+
+        def right_adjoint_law(x, f, y):
+            p = self.right_cat.morphism_to_number(x, f, y)
+            rx = self.right_obj(x)
+            ry = self.right_obj(y)
+            return CatMat(ZZ, self.left_cat, rx, right_adjoint_action(x, y)[p], ry)
+
+        self.right_functor = MatrixRepresentation(self.right_cat, ZZ, right_adjoint_law, target_cat=self.left_cat)
+
+
+    def right_adjoint(self):
+        return self.right_functor
 
 
 
