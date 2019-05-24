@@ -177,7 +177,7 @@ class FiniteCategory(object):
             iter(degrees)
         except TypeError:
             print 'Warning! You have passed a non-iterable list of degrees to free_module.'
-            print 'Figure out when it happend, and fix it!'
+            print 'Figure out when it happened, and fix it!'
             return self.free_module(ring, (degrees,))
 
         def law(x, f, y):
@@ -1520,17 +1520,25 @@ class MatrixRepresentation(object):
     def __call__(self, *args):
         if len(args) == 3:
             x, f, y = args
+            # This code is a hack to make additive categories work.
+            # It currently doesn't support target categories.
+            # And also it assumes integers for no reason.
+            if isinstance(f, sage.modules.vector_integer_dense.Vector_integer_dense):
+                ret = zero_matrix(self.ring, self.rank(x), self.rank(y))
+                for coef, g in zip(f, self.cat.hom(x, y)):
+                    ret += self(x, g, y) * coef
+                return ret
             if (x, f, y) in self.pre:
                 return self.pre[(x, f, y)]
             else:
                 ret = self.law(x, f, y)
                 self.pre[(x, f, y)] = ret
                 return ret
-        if not (len(args) == 1 and isinstance(args[0], CatMat)):
-            raise SyntaxError('Evaluate a representation on a triple (x, f, y) or on a CatMat')
+        #if not (len(args) == 1 and isinstance(args[0], CatMat)):
+        #    raise SyntaxError('Evaluate a representation on a triple (x, f, y) or on a CatMat')
 
         cm = args[0]
-        assert isinstance(cm, CatMat)
+        #assert isinstance(cm, CatMat)
 
         block_rows = []
         for i, x in enumerate(cm.source):
@@ -1558,12 +1566,17 @@ class MatrixRepresentation(object):
                 return block_matrix(block_rows)
 
     def rank(self, x):
+        from AdditiveCategories import PreadditiveCategory
         if x in self.ranks:
             return self.ranks[x]
         if self.cat_mat:
             ret = self.law(x, self.cat.identity(x), x).source
         else:
-            ret = self.law(x, self.cat.identity(x), x).nrows()
+            # There is always at least one morphism because the identity is present
+            f = self.cat.hom(x, x)[0]
+            ret = self.law(x, f, x).nrows()
+        #else:
+        #    ret = self.law(x, self.cat.identity(x), x).nrows()
         self.ranks[x] = ret
         return ret
 
@@ -1792,6 +1805,22 @@ class MatrixRepresentation(object):
         diff_dict = {d: trivial_rep(res.differential('*', (d,))).transpose() for d in range(degree - 1, degree + 2)}
         ch = ChainComplex(diff_dict)
         return ch.homology(degree)
+
+    def test(self):
+        for x in self.cat.objects:
+            for y in self.cat.objects:
+                for z in self.cat.objects:
+                    for f in self.cat.hom(x, y):
+                        for g in self.cat.hom(y, z):
+                            if self(x, f, y) * self(y, g, z) != self(x, self.cat.basic_compose(x, f, y, g, z), z):
+                                print 'failed functoriality test on the tuple ' + str((x, f, y, g, z))
+                                print
+                                print self(x, f, y)
+                                print ' * '
+                                print self(y, g, z)
+                                print ' != '
+                                print self(x, self.cat.basic_compose(x, f, y, g, z), z)
+                                print
 
 
 
