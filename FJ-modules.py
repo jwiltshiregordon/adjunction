@@ -4,12 +4,13 @@ from AdditiveCategories import *
 # Preliminary implementation of the category of FJ-modules defined by Patzt and Wiltshire-Gordon
 
 # Set the degree FJ_d
-d = 2
+d = 4
 D = FI()
 
 # Give a presentation matrix for an FI-module
 # We will compute its degree <= d part as a rep of FJ_d
-m = CatMat.from_string(ZZ, D, [3], '[[abc-bca]]', [3])
+m = CatMat.from_string(ZZ, D, [3], '[[abc-bac,abc-bca]]', [3, 3])
+m = CatMat.zero_matrix(ZZ, D, [2], [])
 print
 print 'If M is the FI-module with presentation matrix'
 m.pp()
