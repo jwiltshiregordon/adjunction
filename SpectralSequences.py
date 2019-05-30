@@ -1,21 +1,30 @@
 from CatMat import *
+from Prune import *
+from random import shuffle
 
 # Implementation of the spectral sequence of a filtered complex.
+# We use the method of exact couples.
+initial_prune = True
 
-cyclic = [1, 2, 3, 4, 1]
-X0 = SimplicialComplex([[1]])
-X1 = SimplicialComplex([[1, 2], [2, 3], [3, 4], [1, 4]])
-X2 = SimplicialComplex([[cyclic[i], cyclic[i + 1], j] for i in range(4) for j in [5, 6]])
+# Serre spectral sequence for the unit tangent bundle in a manifold?
 
-def X(p):
-    if p <= -1:
-        return SimplicialComplex([])
-    if p == 0:
-        return X0
-    if p == 1:
-        return X1
-    if p >= 2:
-        return X2
+# Conf(2, manifold) ---> manifold
+# is a Serre fibration
+manifold = simplicial_complexes.KleinBottle()
+steps = manifold.dimension()
+square = manifold.product(manifold, rename_vertices=False)
+non_diag = square.generated_subcomplex([v for v in square.vertices() for (a, b) in [v] if a != b])
+verts = list(non_diag.vertices())
+
+Xtop = non_diag
+#def X(p):
+#     if p <= -1:
+#         return SimplicialComplex([])
+#     def serre_filtration(s):
+#         return len(set([a for (a, b) in s])) <= p + 1 and (Simplex(s) in non_diag.n_faces(len(s) - 1))
+#     return SimplicialComplex(from_characteristic_function=(serre_filtration, verts))
+
+
 
 # +m
 def syz(m):
@@ -38,32 +47,88 @@ def Xfaces(p, n):
     return list(X(p)._n_cells_sorted(n)) if n != -1 else []
 
 
+def N_one(x):
+    return '*'
+def N_hom(x, y):
+    return ['*'] if x <= y else []
+def N_comp(x, f, y, g, z):
+    return '*'
+
+N = FiniteCategory(range(steps + 1), N_one, N_hom, N_comp)
+
+
+def serre_filtration(s):
+    return len(set([a for (a, b) in s])) - 1
+
+def d_law(x, (d, )):
+    rows = Xtop._n_cells_sorted(d) if d >= 0 else []
+    cols = Xtop._n_cells_sorted(d + 1) if d + 1 >= 0 else []
+    row_degrees = [serre_filtration(r) for r in rows]
+    col_degrees = [serre_filtration(c) for c in cols]
+    entries = [sum([sgn(i) for i, f in enumerate(c.faces()) if r == f]) for r, rr in zip(rows, row_degrees)
+               for c, cc in zip(cols, col_degrees)
+               if rr <= cc]
+    return CatMat(ZZ, N, row_degrees, vector(ZZ, entries), col_degrees)
+
+def f_law((d, ), x, f, y):
+    rows = Xtop._n_cells_sorted(d) if d >= 0 else []
+    degrees = [serre_filtration(r) for r in rows]
+    return CatMat.identity_matrix(ZZ, N, degrees)
+
+dgm_big = dgModule(TerminalCategory, ZZ, f_law, [d_law], target_cat=N)
+top_deg = 100
+if initial_prune:
+    dgm = prune_dg_module_on_poset(dgm_big, (0, top_deg), verbose=True)
+else:
+    dgm = dgm_big
+
+
+def f_law((d, ), x, f, y):
+    f_mat = CatMat.from_string(ZZ, N, [x], '[[' + f + ']]', [y])
+    return CatMat.matrix_postcompose(dgm.rank((-d,), '*'), f_mat)
+
+
+def d_law(x, (d, )):
+    return CatMat.matrix_precompose(dgm.differential('*', (-d - 1,)), [x])
+
+
+dgm_explode = dgModule(N, ZZ, f_law, [d_law])
+
+
 def pi(p, n):
-    rows = Xfaces(p, n)
-    cols = Xfaces(p, n) + Xfaces(p - 1, n - 1)
-    entries = [1 if r == c else 0 for r in rows for c in cols]
-    return matrix(ZZ, len(rows), len(cols), entries)
+    #rows = Xfaces(p, n)
+    #cols = Xfaces(p, n) + Xfaces(p - 1, n - 1)
+    #entries = [1 if r == c else 0 for r in rows for c in cols]
+    #return matrix(ZZ, len(rows), len(cols), entries)
+    pn = dgm_explode.rank((-n,), p)
+    pnm = dgm_explode.rank((-n + 1,), p - 1)
+    return block_matrix([[identity_matrix(ZZ, pn), zero_matrix(ZZ, pn, pnm)]])
 
 
 def phi(p, n):
-    rows = Xfaces(p - 1, n)
-    cols = Xfaces(p, n)
-    entries = [1 if r == c else 0 for r in rows for c in cols]
-    return matrix(ZZ, len(rows), len(cols), entries)
+    #rows = Xfaces(p - 1, n)
+    #cols = Xfaces(p, n)
+    #entries = [1 if r == c else 0 for r in rows for c in cols]
+    #return matrix(ZZ, len(rows), len(cols), entries)
+    return dgm_explode.module_in_degree((-n,))(p - 1, '*', p)
 
 
 def iota(p, n):
-    rows = Xfaces(p + 1, n + 1) + Xfaces(p, n)
-    cols = Xfaces(p, n)
-    entries = [1 if r == c else 0 for r in rows for c in cols]
-    return matrix(ZZ, len(rows), len(cols), entries)
+    #rows = Xfaces(p + 1, n + 1) + Xfaces(p, n)
+    #cols = Xfaces(p, n)
+    #entries = [1 if r == c else 0 for r in rows for c in cols]
+    #return matrix(ZZ, len(rows), len(cols), entries)
+    pnp = dgm_explode.rank((-n - 1,), p + 1)
+    pn = dgm_explode.rank((-n,), p)
+    return block_matrix([[zero_matrix(ZZ, pnp, pn)], [identity_matrix(ZZ, pn)]])
 
 
 def delta(p, n):
-    rows = Xfaces(p, n + 1)
-    cols = Xfaces(p, n)
-    entries = [sum([sgn(k) if f == c else 0 for k, f in enumerate(r.faces())]) for r in rows for c in cols]
-    return matrix(ZZ, len(rows), len(cols), entries)
+    #rows = Xfaces(p, n + 1)
+    #cols = Xfaces(p, n)
+    #entries = [sum([sgn(k) if f == c else 0 for k, f in enumerate(r.faces())]) for r in rows for c in cols]
+    #return matrix(ZZ, len(rows), len(cols), entries)
+    return dgm_explode.differential(p, (-n - 1,))
 
 
 def epsilon(p, n):
@@ -224,10 +289,14 @@ def H(p, q, r):
 
 for r in range(1, 4):
     print 'E_' + str(r) + ' page:'
-    for q in range(5, -5, -1):
+    for q in range(5, -10, -1):
         print ('q = ' + str(q) + ': ').ljust(10),
         for p in range(7):
             print show_coker(E(p, q, r)),
         print
     print
 
+for pqr in E_dict:
+    print 'Computed E' + str(pqr)
+    print E_dict[pqr].dimensions()
+    print
