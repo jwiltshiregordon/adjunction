@@ -136,6 +136,13 @@ def equivariant_complexes_d_law(x, (d,)):
 
 equivariant_complexes = dgModule(D, ring, equivariant_complexes_f_law, [equivariant_complexes_d_law])
 
+for i in range(5):
+    print 'H^' + str(i)
+    for x in D.objects:
+        print x, equivariant_complexes.rank((i,), x)
+
+
+
 # This code loads matrixwise information and returns pointwise.
 # Use it with OberwolfachPractice-style code.
 #

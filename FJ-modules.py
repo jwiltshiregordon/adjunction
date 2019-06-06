@@ -4,7 +4,7 @@ from AdditiveCategories import *
 # Preliminary implementation of the category of FJ-modules defined by Patzt and Wiltshire-Gordon
 
 # Set the degree FJ_d
-d = 4
+d = 2
 D = FI()
 
 # Give a presentation matrix for an FI-module
@@ -174,6 +174,7 @@ for x in range(d + 1):
         direct = FJqHom(d, x, y)
         mo = matrix(ZZ, len(homs), factorial(d), dv)
         md = matrix(ZZ, len(homs), factorial(d), direct.data_vector)
+        # If these two lines run without causing an error, then the hom-spaces coincide
         CatMat.matrix_solve_right(mo.transpose(), md.transpose())
         CatMat.matrix_solve_right(md.transpose(), mo.transpose())
 
@@ -202,8 +203,11 @@ def FJ_comp(x, f, y, g, z):
     fgm = matrix(ZZ, factorial(d), 1, list((gm * fm).data_vector))
     return CatMat.matrix_solve_right(FJ_hom_mats[x, z], fgm).column(0)
 
-
-FJ = PreadditiveCategory(range(d + 1), FJ_one, FJ_hom, FJ_comp)
+def mll(x, f, y):
+    ret = f.replace('{', '[').replace('}', ']').replace('t^0', '').replace('t^1', 't')
+    return ret if ret != '' else '1'
+FJ = PreadditiveCategory(range(d + 1), FJ_one, FJ_hom, FJ_comp, morphism_latex_law=mll)
+FJ.show_multiplication_table()
 #FJ.test()
 
 def I_one(x):

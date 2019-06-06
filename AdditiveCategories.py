@@ -193,6 +193,17 @@ class PreadditiveCategory(object):
 
         return MatrixRepresentation(self, ring, law, target_cat=None)
 
+
+    def show_multiplication_table(self):
+        morphisms = [(x, f, y) for x in self.objects for y in self.objects for f in self.hom(x, y)]
+        source = [x for x, f, y in morphisms]
+        target = [z for y, g, z in morphisms]
+        entries = [e for x, f, y in morphisms for yy, g, z in morphisms
+                     for e in ([0] * len(self.hom(x, z)) if y != yy else self.basic_compose(x, f, y, g, z))]
+        print [f for _, f, _ in morphisms]
+        print CatMat(ZZ, self, source, vector(ZZ, entries), target).to_latex()
+
+
     def test(self):
         for x in self.objects:
             if len(self.identity(x)) != len(self.hom(x, x)):
