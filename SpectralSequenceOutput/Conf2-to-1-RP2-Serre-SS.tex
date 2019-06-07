@@ -1,0 +1,51 @@
+\documentclass[tikz]{standalone}
+%\usetikzlibrary{calc}
+\usepackage{tikz-cd}
+\usepackage{amsmath}
+\usepackage{pict2e}
+\usepackage{amsmath,amsthm,amssymb,graphicx,mathtools,tikz,hyperref}
+\newcommand{\amsamp}{&}
+\begingroup
+\catcode`\&=13
+\gdef\pampmatrix{%
+  \begingroup
+  \let&=\amsamp
+  \begin{bmatrix}%
+}
+\gdef\endpampmatrix{\end{bmatrix}\endgroup}
+\endgroup
+\setcounter{MaxMatrixCols}{75}
+\begin{document}
+\begin{tikzcd}E^{pq}_1 \quad p = &0 &[26em]1 &[26em]2\\
+q = 1: & \mathbb{Z}^{6} \arrow[r, "\begin{bmatrix} 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ -1 \amsamp -1 \amsamp 1 \amsamp -1 \amsamp -1 \amsamp 2 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0\end{bmatrix}" description] & \mathbb{Z}^{15} \arrow[r, "\begin{bmatrix} 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0\end{bmatrix}" description] & \mathbb{Z}^{10} & \\[26em] 
+ q = 0: & \mathbb{Z}^{6} \arrow[r, "\begin{bmatrix} 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ -1 \amsamp -1 \amsamp -1 \amsamp -1 \amsamp -1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0\end{bmatrix}" description] & \mathbb{Z}^{15} \arrow[r, "\begin{bmatrix} 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 1 \amsamp -2 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \\ 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 0 \amsamp 1 \\ 1 \amsamp 0 \amsamp 0 \amsamp 1 \amsamp 0 \amsamp -1 \amsamp 0 \amsamp -1 \amsamp 0 \amsamp 0\end{bmatrix}" description] & \mathbb{Z}^{10} & \\[26em] \hline
+ \end{tikzcd}
+ \begin{tikzcd}
+ E^{pq}_2 \quad p = &0 &[26em]1 &[26em]2 \\
+ q = 1: & \; & \mathbb{Z}/2 & \mathbb{Z} & \\[26em] 
+ q = 0: & \mathbb{Z} & \; & \mathbb{Z}/2 & \\[26em] \hline
+ \end{tikzcd}
+ \begin{tikzcd}
+ E^{pq}_3 \quad p = &0 &[26em]1 &[26em]2 \\
+ q = 1: & \; & \mathbb{Z}/2 & \mathbb{Z} & \\[26em] 
+ q = 0: & \mathbb{Z} & \; & \mathbb{Z}/2 & \\[26em] \hline
+ \end{tikzcd}
+ \begin{tikzcd}
+ E^{pq}_4 \quad p = &0 &[26em]1 &[26em]2 \\
+ q = 1: & \; & \mathbb{Z}/2 & \mathbb{Z} & \\[26em] 
+ q = 0: & \mathbb{Z} & \; & \mathbb{Z}/2 & \\[26em] \hline
+ \end{tikzcd}
+ \begin{tikzcd}
+ E^{pq}_5 \quad p = &0 &[26em]1 &[26em]2 \\
+ q = 1: & \; & \mathbb{Z}/2 & \mathbb{Z} & \\[26em] 
+ q = 0: & \mathbb{Z} & \; & \mathbb{Z}/2 & \\[26em] \hline
+ \end{tikzcd}
+ \begin{tikzcd}
+ E^{pq}_6 \quad p = &0 &[26em]1 &[26em]2 \\
+ q = 1: & \; & \mathbb{Z}/2 & \mathbb{Z} & \\[26em] 
+ q = 0: & \mathbb{Z} & \; & \mathbb{Z}/2 & \\[26em] \hline
+ \end{tikzcd}
+ \begin{tikzcd}
+ \end{tikzcd}
+% Further ?tikzpicture? environments are possible which will create further pages.
+\end{document}
