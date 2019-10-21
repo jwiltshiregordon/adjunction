@@ -176,8 +176,8 @@ class FiniteCategory(object):
         try:
             iter(degrees)
         except TypeError:
-            print 'Warning! You have passed a non-iterable list of degrees to free_module.'
-            print 'Figure out when it happened, and fix it!'
+            print('Warning! You have passed a non-iterable list of degrees to free_module.')
+            print('Figure out when it happened, and fix it!')
             return self.free_module(ring, (degrees,))
 
         def law(x, f, y):
@@ -231,18 +231,18 @@ class FiniteCategory(object):
     def test(self):
         for x in self.objects:
             if self.identity(x) not in self.hom(x, x):
-                print 'The identity morphism for the object ' + str(x) + \
+                print('The identity morphism for the object ' + str(x) + \
                       ', which is supposed to be given by the string ' + self.identity(x) + \
-                      ', fails to appear in the hom-set ' + str(self.hom(x, x)) + '.'
+                      ', fails to appear in the hom-set ' + str(self.hom(x, x)) + '.')
         for x in self.objects:
             for y in self.objects:
                 for z in self.objects:
                     for f in self.hom(x, y):
                         for g in self.hom(y, z):
                             if self.compose(x, f, y, g, z) not in self.hom(x, z):
-                                print 'The composition ' + str((x, f, y, g, z)) + ', which is supposed ' + \
+                                print('The composition ' + str((x, f, y, g, z)) + ', which is supposed ' + \
                                     'to be given by the string ' + self.compose(x, f, y, g, z) + \
-                                    ', fails to appear in the hom-set ' + str(self.hom(x, z)) + '. '
+                                    ', fails to appear in the hom-set ' + str(self.hom(x, z)) + '. ')
         for w, x, y, z in itertools.product(*([self.objects] * 4)):
             for f in self.hom(w, x):
                 for g in self.hom(x, y):
@@ -250,7 +250,7 @@ class FiniteCategory(object):
                         left = self.compose(w, f, x, self.compose(x, g, y, h, z), z)
                         right = self.compose(w, self.compose(w, f, x, g, y), y, h, z)
                         if left != right:
-                            print 'The following triple of morphisms do not associate:'
+                            print('The following triple of morphisms do not associate:')
                             print (w, f, x, g, y, h, z)
 
 
@@ -583,7 +583,7 @@ class Functor(object):
                         for g in self.source.hom(y, z):
                             if self(x, self.source.compose(x, f, y, g, z), z)[1] != \
                               self.target.compose(self(x), self(x, f, y)[1], self(y), self(y, g, z)[1], self(z)):
-                                print 'Functoriality fails for the morphisms ' + str((x, f, y, g, z)) + '.'
+                                print('Functoriality fails for the morphisms ' + str((x, f, y, g, z)) + '.')
 
 
 # CatMat is the class for matrices over a category
@@ -657,10 +657,14 @@ class CatMat(object):
             for j, y in enumerate(source_target):
                 h = len(cat.hom(x, y))
                 if i == j:
-                    one_position = cat.morphism_to_number(x, cat.identity(x), x)
-                    vd += [0] * one_position
-                    vd += [1]
-                    vd += [0] * (h - one_position - 1)
+                    if isinstance(cat, FiniteCategory):
+                        one_position = cat.morphism_to_number(x, cat.identity(x), x)
+                        vd += [0] * one_position
+                        vd += [1]
+                        vd += [0] * (h - one_position - 1)
+                    else:
+                        # In this case, cat is a preadditive category so the identity is a vector
+                        vd += list(cat.identity(x))
                 else:
                     vd += [0] * h
         return CatMat(ring, cat, source_target, vector(ring, vd), source_target)
@@ -880,7 +884,7 @@ class CatMat(object):
                                           str(entry.source) + ', expected ' + str(sources[i]) + ".")
                     if list(entry.target) != list(targets[j]):
                         raise SyntaxError('Entry ' + str((i, j)) + ' has wrong target.  Found ' +
-                                          str(entry.target) + ', expected ' + str(targets[i]) + ".")
+                                          str(entry.target) + ', expected ' + str(targets[j]) + ".")
                 else:
                     try:
                         ring(entry)
@@ -1258,13 +1262,22 @@ class CatMat(object):
         widths[0] += -2
         format_string = ''.join('{:^' + str(w) + '}' for w in widths)
         for i, row in enumerate(table):
-            print format_string.format(*row) + (']' if i > 0 else '')
+            print(format_string.format(*row) + (']' if i > 0 else ''))
         return
 
     # Considering this CatMat as a presentation matrix for a self.cat module,
     # returns a string describing the module at object x
     def coker_at(self, x):
-        mi = self.cat.cofree_module(self.ring, [x])(self)
+        # Workaround because self.cat might be preadditive
+        # but we cannot import AdditiveCategories because it
+        # relies on CatMat too much.  Still, the except should
+        # be tightened.
+        try:
+            mi = self.cat.cofree_module([x])(self)
+        except:
+            mi = self.cat.cofree_module(self.ring, [x])(self)
+
+        #    mi = self.cat.cofree_module(self.ring, [x])(self)
         mc = ChainComplex({-1: mi})
         return mc.homology(0)
 
@@ -1424,8 +1437,13 @@ class CatMat(object):
         cols = []
         for j, col in enumerate(other.columns()):
             d = col.target[0]
-            fd = self.cat.cofree_module(self.ring, (d,))
-            one_col = fd(col).column(self.cat.morphism_to_number(d, self.cat.identity(d), d))
+            if isinstance(self.cat, FiniteCategory):
+                fd = self.cat.cofree_module(self.ring, (d,))
+                one_col = fd(col).column(self.cat.morphism_to_number(d, self.cat.identity(d), d))
+            else:
+                fd = self.cat.cofree_module((d,))
+                # For preadditive categories, cat.identity(d) is a vector
+                one_col = fd(col) * self.cat.identity(d)
             # This should be precomputed or saved:
             solve_vec = CatMat.matrix_solve_right(fd(self), one_col).column(0)
             #mat = fd(self)
@@ -1477,7 +1495,8 @@ class CatMat(object):
         return self.step_right()
 
     def step_right_dgModule(self):
-        def d_law(x, (d,)):
+        def d_law(x, dd):
+            d = dd[0]
             if d <= -2:
                 return CatMat.identity_matrix(self.ring, self.cat, [])
             if d == -1:
@@ -1487,7 +1506,8 @@ class CatMat(object):
             self.res[d] = +d_law(x, (d - 1,))
             return self.res[d]
 
-        def f_law((d,), x, f, y):
+        def f_law(dd, x, f, y):
+            d = dd[0]
             return CatMat.identity_matrix(self.ring, self.cat, d_law(x, (d - 1,)).target)
 
         return dgModule(TerminalCategory, self.ring, f_law, [d_law], target_cat=self.cat, cache=False)
@@ -1566,11 +1586,10 @@ class MatrixRepresentation(object):
                 return block_matrix(block_rows)
 
     def rank(self, x):
-        from AdditiveCategories import PreadditiveCategory
         if x in self.ranks:
             return self.ranks[x]
         if self.cat_mat:
-            ret = self.law(x, self.cat.identity(x), x).source
+            ret = self.law(x, self.cat.hom(x, x)[0], x).source
         else:
             # There is always at least one morphism because the identity is present
             f = self.cat.hom(x, x)[0]
@@ -1782,7 +1801,8 @@ class MatrixRepresentation(object):
         # This line populates self.res[0]
         self.presentation()
 
-        def d_law(x, (d,)):
+        def d_law(x, dd):
+            d = dd[0]
             if d <= -2:
                 return CatMat.identity_matrix(self.ring, self.res[0].cat, [])
             if d == -1:
@@ -1792,7 +1812,8 @@ class MatrixRepresentation(object):
             self.res[d] = +d_law(x, (d - 1,))
             return self.res[d]
 
-        def f_law((d,), x, f, y):
+        def f_law(dd, x, f, y):
+            d = dd[0]
             return CatMat.identity_matrix(self.ring, self.res[0].cat, d_law(x, (d - 1,)).target)
 
         return dgModule(TerminalCategory, self.ring, f_law, [d_law], target_cat=self.res[0].cat, cache=False)
@@ -1812,15 +1833,20 @@ class MatrixRepresentation(object):
                 for z in self.cat.objects:
                     for f in self.cat.hom(x, y):
                         for g in self.cat.hom(y, z):
-                            if self(x, f, y) * self(y, g, z) != self(x, self.cat.basic_compose(x, f, y, g, z), z):
-                                print 'failed functoriality test on the tuple ' + str((x, f, y, g, z))
-                                print
-                                print self(x, f, y)
-                                print ' * '
-                                print self(y, g, z)
-                                print ' != '
-                                print self(x, self.cat.basic_compose(x, f, y, g, z), z)
-                                print
+                            try:
+                                if self(x, f, y) * self(y, g, z) != self(x, self.cat.basic_compose(x, f, y, g, z), z):
+                                    print('failed functoriality test on the tuple ' + str((x, f, y, g, z)))
+                                    print
+                                    print(self(x, f, y))
+                                    print(' * ')
+                                    print(self(y, g, z))
+                                    print(' != ')
+                                    print(self(x, self.cat.basic_compose(x, f, y, g, z), z))
+                                    print
+                            except(TypeError):
+                                ff = CatMat.from_string(self.ring, self.cat, [x], '[[' + f + ']]', [y])
+                                gg = CatMat.from_string(self.ring, self.cat, [y], '[[' + g + ']]', [z])
+                                assert self(ff) * self(gg) == self(ff * gg)
 
 
 
@@ -1956,7 +1982,8 @@ class dgModule(object):
         return dgModule(new_source, ring, f_law, [kth_d_law(k) for k in range(q)], target_cat=new_target)
 
     def total_complex(self):
-        def f_law((d,), x, f, y):
+        def f_law(dd, x, f, y):
+            d = dd[0]
             b_summands = []
             #for v in WeightedIntegerVectors(n=d, weight=[1]*self.n_diff):
             for v in list(IntegerVectors(d, self.n_diff)):
@@ -1964,7 +1991,8 @@ class dgModule(object):
             # The following line will also work if cat_mat is false
             return CatMat.block_diagonal(b_summands, self.ring, self.target_cat)
 
-        def d_law_block_entry(x, (d,), v, w):
+        def d_law_block_entry(x, ddd, v, w):
+            d = ddd[0]
             dd = ([j - i for (i, j) in zip(v, w)])
             source = self.rank(tuple(v), x)
             target = self.rank(tuple(w), x)
@@ -1976,7 +2004,8 @@ class dgModule(object):
             dlbe = sgn * self.differential(x, tuple(v), a)
             return dlbe
 
-        def d_law(x, (d,)):
+        def d_law(x, dd):
+            d = dd[0]
             s = list(IntegerVectors(d, self.n_diff))
             t = list(IntegerVectors(d + 1, self.n_diff))
             sources = [self.rank(tuple(v), x) for v in s]
@@ -2018,7 +2047,8 @@ class dgModule(object):
         return dgModule(TerminalCategory, self.ring, ud_f_law, [ud_law_res] +
                                   [ud_laws_rep(k) for k in range(self.n_diff)])
 
-    def show(self, x, (a, b), title='DG-module'):
+    def show(self, x, ab, title='DG-module'):
+        a, b = ab
         s = '\\bullet_{' + str(a) + '}'
         if self.n_diff != 1:
             raise NotImplementedError('Can only display a dgModule with a single differential.')

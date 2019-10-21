@@ -1,5 +1,27 @@
 from SpectralSequences import *
 
+def list_filtration(list_of_spaces):
+    def filtration(s):
+        q = s.dimension()
+        for i, X in enumerate(list_of_spaces):
+            if s in X.n_cells(q):
+                print s, i
+                return i
+        return len(list_of_spaces)
+    return filtration
+
+X0 = SimplicialComplex([[1], [2]])
+X1 = SimplicialComplex([[1, 2], [1, 3], [2, 3]])
+
+def X(p):
+    if p <= 1:
+        return [X0, X1][p]
+    z = p + max(X1.vertices()) - 1
+    return SimplicialComplex([list(s) + [z] for s in X(p - 2).facets()] + [list(s) for s in X(p - 1).facets()])
+Xall = [X(p) for p in range(11)]
+print filtered_complex_SS(Xall[-1], list_filtration(Xall), 'example-SS',
+                          p_range=11, q_range=(-6, 1), number_of_pages=7)
+sys.exit(0)
 # The following example encompasses all Hopf fibrations.
 # The total sphere is filtered as follows:
 #    in degree 0, ..., fiber_sphere: the fiber sphere included as an equator

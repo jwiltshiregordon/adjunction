@@ -46,7 +46,9 @@ class PreadditiveCategory(object):
         self.lact = {}
         self.mact = {}
         self.ract = {}
-        #self.op_cat = OppositeCategory(self)
+        self.op_cat = OppositeCategory(self)
+
+        self.double_cat = ProductCategory(';', self.op_cat, self)
 
         self.cache = cache
 
@@ -157,15 +159,12 @@ class PreadditiveCategory(object):
         self.ract[(x, y, f, z)] = ret
         return ret
 
-    #def op(self):
-    #    return self.op_cat
-
     def free_module(self, degrees):
         try:
             iter(degrees)
         except TypeError:
-            print 'Warning! You have passed a non-iterable list of degrees to free_module.'
-            print 'Figure out when it happened, and fix it!'
+            print('Warning! You have passed a non-iterable list of degrees to free_module.')
+            print('Figure out when it happened, and fix it!')
             return self.free_module(self.ring, (degrees,))
 
         def law(x, f, y):
@@ -179,19 +178,34 @@ class PreadditiveCategory(object):
     #def free_op_module(self, ring, degrees):
     #    return self.op_cat.free_module(ring, degrees)
 
-    def cofree_module(self, ring, degrees):
+    def cofree_module(self, degrees):
         try:
             iter(degrees)
         except TypeError:
-            return self.cofree_module(ring, (degrees,))
+            return self.cofree_module(self.ring, (degrees,))
 
         def law(x, f, y):
-            ret = matrix(ring, 0, 0, [])
+            ret = matrix(self.ring, 0, 0, [])
             for d in degrees:
                 ret = ret.block_sum(self.left_action_matrix(x, f, y, d).transpose())
             return ret
 
-        return MatrixRepresentation(self, ring, law, target_cat=None)
+        return MatrixRepresentation(self, self.ring, law, target_cat=None)
+
+
+    def op(self):
+        return self.op_cat
+
+
+    def hom_bimodule(self):
+        def hom_bimodule_law(bx, fg, ay):
+            b, x = bx
+            a, y = ay
+            f, g = self.double_cat.break_string(fg)
+            free = self.free_module([b])
+            cofree = self.cofree_module([y])
+            return free(x, g, y) * cofree(a, f, b).transpose()
+        return MatrixRepresentation(self.double_cat, ZZ, hom_bimodule_law, target_cat=None)
 
 
     def show_multiplication_table(self):
@@ -200,33 +214,33 @@ class PreadditiveCategory(object):
         target = [z for y, g, z in morphisms]
         entries = [e for x, f, y in morphisms for yy, g, z in morphisms
                      for e in ([0] * len(self.hom(x, z)) if y != yy else self.basic_compose(x, f, y, g, z))]
-        print [f for _, f, _ in morphisms]
-        print CatMat(ZZ, self, source, vector(ZZ, entries), target).to_latex()
+        print([f for _, f, _ in morphisms])
+        print(CatMat(ZZ, self, source, vector(ZZ, entries), target).to_latex())
 
 
     def test(self):
         for x in self.objects:
             if len(self.identity(x)) != len(self.hom(x, x)):
-                print 'The identity morphism for the object ' + str(x) + \
+                print('The identity morphism for the object ' + str(x) + \
                       ', which is supposed to have length ' + str(len(self.hom(x, x))) + \
-                      ', instead has length ' + str(len(self.identity(x))) + '.'
+                      ', instead has length ' + str(len(self.identity(x))) + '.')
         for x in self.objects:
             for y in self.objects:
                 for f in self.hom(x, y):
                     fv = vector(self.ring, [1 if m == f else 0 for m in self.hom(x, y)])
                     if self.compose(x, self.identity(x), x, fv, y) != fv:
-                        print 'The identity morphism for the object ' + str(x) + \
+                        print('The identity morphism for the object ' + str(x) + \
                               ' does not fix the morphism ' + str(fv) + \
-                              ' to ' + str(y) + '.'
+                              ' to ' + str(y) + '.')
         for x in self.objects:
             for y in self.objects:
                 for z in self.objects:
                     for f in self.hom(x, y):
                         for g in self.hom(y, z):
                             if len(self.basic_compose(x, f, y, g, z)) != len(self.hom(x, z)):
-                                print 'The composition ' + str((x, f, y, g, z)) + ', which is supposed ' + \
+                                print('The composition ' + str((x, f, y, g, z)) + ', which is supposed ' + \
                                     'to have length ' + len(self.hom(x, z)) + \
-                                    ', instead has length ' + len(self.basic_compose(x, f, y, g, z)) + '. '
+                                    ', instead has length ' + len(self.basic_compose(x, f, y, g, z)) + '. ')
         for w, x, y, z in itertools.product(*([self.objects] * 4)):
             for f in self.hom(w, x):
                 for g in self.hom(x, y):
@@ -236,8 +250,8 @@ class PreadditiveCategory(object):
                         left = self.compose(w, fv, x, self.basic_compose(x, g, y, h, z), z)
                         right = self.compose(w, self.basic_compose(w, f, x, g, y), y, hv, z)
                         if left != right:
-                            print 'The following triple of morphisms do not associate:'
-                            print (w, f, x, g, y, h, z)
+                            print('The following triple of morphisms do not associate:')
+                            print(w, f, x, g, y, h, z)
 
 
 

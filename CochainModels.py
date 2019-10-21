@@ -139,7 +139,7 @@ equivariant_complexes = dgModule(D, ring, equivariant_complexes_f_law, [equivari
 for i in range(5):
     print 'H^' + str(i)
     for x in D.objects:
-        print x, equivariant_complexes.rank((i,), x)
+        print x, complexes.rank((i,), x)
 
 
 

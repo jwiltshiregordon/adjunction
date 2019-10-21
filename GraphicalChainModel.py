@@ -282,8 +282,11 @@ def conf_model(n, X, ring=ZZ, output_file_name=None, verbose=False, parallelize=
         save_dict = {d: (diff_dict[d].source, diff_dict[d].data_vector, diff_dict[d].target)
                      for d in range(-1, top_deg + 1)}
 
-        save(save_dict, '/Users/jwiltshiregordon/Dropbox/GraphicalChainModels/' + output_file_name)
+        save(save_dict, '/Users/jwiltshiregordon/Dropbox/Projects/GraphicalChainModels/' + output_file_name)
         print 'Pruned complex saved to ' + output_file_name + '.sobj'
 
 
 conf_model(2, SimplicialComplex([[1,2,3]]))
+conf_model(3, SimplicialComplex([[1, 2], [1, 3], [2, 4], [3, 4], [1, 4]]),
+           ring=QQ, output_file_name='conf-3-theta-QQ', verbose=True, parallelize=True, display_degree=7)
+
