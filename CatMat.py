@@ -385,9 +385,13 @@ class ProductCategory(FiniteCategory):
         self.msn = {}
 
     def identity(self, x):
+        # Broken for additive categories
         if self.n_factors == 1:
             return self.cats[0].identity(x)
-        return self.combine_strings(*[cat.identity(x[i]) for i, cat in self.ecats])
+        try:
+            return self.combine_strings(*[cat.identity(x[i]) for i, cat in self.ecats])
+        except(TypeError):
+            return CatMat.kronecker_product(self.sep, *[CatMat.identity_matrix(ZZ, cat, [x[i]]) for i, cat in self.ecats]).data_vector
 
     def hom(self, x, y):
         if self.n_factors == 1:
@@ -482,7 +486,7 @@ class ProductCategory(FiniteCategory):
 
     def op(self):
         if self.op_cat is None:
-            self.op_cat = ProductCategory(*[cat.op() for cat in self.cats])
+            self.op_cat = ProductCategory(self.sep, *[cat.op() for cat in self.cats])
             self.op_cat.op_cat = self
         return self.op_cat
 
@@ -657,12 +661,12 @@ class CatMat(object):
             for j, y in enumerate(source_target):
                 h = len(cat.hom(x, y))
                 if i == j:
-                    if isinstance(cat, FiniteCategory):
+                    try:
                         one_position = cat.morphism_to_number(x, cat.identity(x), x)
                         vd += [0] * one_position
                         vd += [1]
                         vd += [0] * (h - one_position - 1)
-                    else:
+                    except(TypeError):
                         # In this case, cat is a preadditive category so the identity is a vector
                         vd += list(cat.identity(x))
                 else:
@@ -1374,7 +1378,11 @@ class CatMat(object):
         for d in self.cat.objects:
             # Apply (-,o) to self
             # to get an ordinary block matrix
-            fo = self.cat.cofree_module(self.ring, (d,))
+            # The following check needs to be corrected wrt additive categories
+            if isinstance(self.cat, FiniteCategory):
+                fo = self.cat.cofree_module(self.ring, (d,))
+            else:
+                fo = self.cat.cofree_module((d,))
             #ker = matrix(fo(self).right_kernel().gens()).transpose()
             ker = CatMat.matrix_step_right(fo(self))
             cols = []
@@ -1843,7 +1851,7 @@ class MatrixRepresentation(object):
                                     print(' != ')
                                     print(self(x, self.cat.basic_compose(x, f, y, g, z), z))
                                     print
-                            except(TypeError):
+                            except(TypeError, AttributeError):
                                 ff = CatMat.from_string(self.ring, self.cat, [x], '[[' + f + ']]', [y])
                                 gg = CatMat.from_string(self.ring, self.cat, [y], '[[' + g + ']]', [z])
                                 assert self(ff) * self(gg) == self(ff * gg)

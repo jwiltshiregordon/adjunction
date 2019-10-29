@@ -136,4 +136,55 @@ def FI_flat(k):
     return MatrixRepresentation(FI(), ZZ, law)
 
 F = FI_to_ncFin([0, 1, 2, 3])
-F.test()
+# F.test()
+
+def FI_concatenation_law(xx, ff, yy):
+    D = FI()
+    C = ProductCategory(';', D, D)
+    x1, x2 = xx
+    f1, f2 = C.break_string(ff)
+    y1, y2 = yy
+    f1 = '' if f1 == '*' else f1
+    f2 = '' if f2 == '*' else f2
+    f1f2 = '*' if f1 + f2 == '' else f1 + ''.join([chr(ord(v) + y1) for v in f2])
+    return CatMat.from_string(ZZ, D, [x1 + x2], '[[' + f1f2 + ']]', [y1 + y2])
+
+FI_concatenation = MatrixRepresentation(ProductCategory(';', FI(), FI()), ZZ, FI_concatenation_law, target_cat=FI())
+
+
+def subsum_indexing(x):
+    u = range(x)
+    return [([i for i in u if i in s], [i for i in u if i not in s]) for s in Subsets(u)]
+
+
+def subsum(x):
+    return [(len(s), len(t)) for s, t in subsum_indexing(x)]
+
+
+def subsum_unit(x):
+    D = FI()
+    if x == 0:
+        return CatMat.from_string(ZZ, D, [0], '[[*]]', [0])
+    idx = D.identity(x)
+    ind = subsum_indexing(x)
+    entries = ','.join([''.join([idx[st.index(i)] for i in range(x)]) for s, t in ind for st in [s + t]])
+    return CatMat.from_string(ZZ, D, [x], '[[' + entries + ']]', [x] * len(ind))
+
+
+def subsum_law(x, f, y):
+    D = FI()
+    C = ProductCategory(';', D, D)
+    sx = subsum(x)
+    sxu = subsum_unit(x)
+    sy = subsum(y)
+    syu = subsum_unit(y)
+    n = len(CatMat.zero_matrix(ZZ, C, sx, sy).data_vector)
+    mm = matrix([(sxu * FI_concatenation(CatMat(ZZ, C, sx, v, sy))).data_vector for v in identity_matrix(ZZ, n).rows()])
+    ff = CatMat.from_string(ZZ, D, [x], '[[' + f + ']]', [y])
+    w = (ff * syu).data_vector
+    u = CatMat.matrix_solve_right(mm.transpose(), matrix(ZZ, len(w), 1, w)).transpose()
+    return CatMat(ZZ, C, sx, u.row(0), sy)
+
+
+# This representation is the left adjoint to FI_concatenation
+FI_decompositions = MatrixRepresentation(FI(), ZZ, subsum_law, target_cat=ProductCategory(';', FI(), FI()))

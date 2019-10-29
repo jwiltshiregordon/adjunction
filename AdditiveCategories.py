@@ -178,7 +178,12 @@ class PreadditiveCategory(object):
     #def free_op_module(self, ring, degrees):
     #    return self.op_cat.free_module(ring, degrees)
 
-    def cofree_module(self, degrees):
+    def cofree_module(self, *args):
+        # Sometimes the first argument is a ring, and this is bad
+        if len(args) == 2:
+            degrees = args[1]
+        else:
+            degrees = args[0]
         try:
             iter(degrees)
         except TypeError:
@@ -254,17 +259,4 @@ class PreadditiveCategory(object):
                             print(w, f, x, g, y, h, z)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# TODO: implement chains and cochains
