@@ -65,6 +65,7 @@ class FiniteCategory(object):
         self.mact = {}
         self.ract = {}
         self.op_cat = OppositeCategory(self)
+        self.double_cat = ProductCategory(self.op_cat, self)
 
         self.cache = cache
 
@@ -223,6 +224,16 @@ class FiniteCategory(object):
 
         return Functor(full_subcat, law, self)
 
+    def hom_bimodule(self, ring):
+        def hom_bimodule_law(bx, fg, ay):
+            b, x = bx
+            a, y = ay
+            f, g = self.double_cat.break_string(fg)
+            free = self.free_module(ring, [b])
+            cofree = self.cofree_module(ring, [y])
+            return free(x, g, y) * cofree(a, f, b).transpose()
+        return MatrixRepresentation(self.double_cat, ZZ, hom_bimodule_law, target_cat=None)
+
     def trivial_representation(self, ring):
         def law(x, f, y):
             return matrix(ring, 1, 1, [1])
@@ -320,18 +331,6 @@ class OppositeCategory(FiniteCategory):
 
 
 
-
-# Here we build the terminal category
-def terminal_one(x):
-    return '*'
-
-def terminal_hom(x, y):
-    return '*'
-
-def terminal_comp(x, f, y, g, z):
-    return '*'
-
-TerminalCategory = FiniteCategory(['*'], terminal_one, terminal_hom, terminal_comp)
 
 
 # More efficient than naively recomputing
@@ -1374,6 +1373,8 @@ class CatMat(object):
     # and this composition is exact whenever you apply (-,d)
     # This is the first step in a projective resolution by free right modules
     def step_right(self):
+        if len(self.cat.objects) == 0:
+            print('Warning: this category carries the trivial modulus.')
         potential_columns = []
         for d in self.cat.objects:
             # Apply (-,o) to self
@@ -2351,6 +2352,18 @@ class Adjunction(object):
 
 
 
+
+# Here we build the terminal category
+def terminal_one(x):
+    return '*'
+
+def terminal_hom(x, y):
+    return '*'
+
+def terminal_comp(x, f, y, g, z):
+    return '*'
+
+TerminalCategory = FiniteCategory(['*'], terminal_one, terminal_hom, terminal_comp)
 
 
 

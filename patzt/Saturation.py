@@ -5,6 +5,8 @@ D, Xi, solve_to_Xi = FJ(d)
 C = FI()
 
 m = CatMat.from_string(ZZ, C, [2, 1, 0], '[[ab-ba],[b+8a],[*]]', [2])
+m = CatMat.from_string(ZZ, C, [2], '[[ab-ba,ab+bc+cd+da]]', [2, 4])
+m = CatMat.from_string(ZZ, C, [2], '[[ab-ba]]', [2])
 for i in range(8):
     print(m.coker_at(i))
 

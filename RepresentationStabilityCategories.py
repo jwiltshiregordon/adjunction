@@ -188,3 +188,26 @@ def subsum_law(x, f, y):
 
 # This representation is the left adjoint to FI_concatenation
 FI_decompositions = MatrixRepresentation(FI(), ZZ, subsum_law, target_cat=ProductCategory(';', FI(), FI()))
+
+# Using work of Djament, tail shifts are always semi-induced
+def FI_tail_shift(k):
+    D = FI()
+    C = ProductCategory(';', D, D)
+    decomp = FI_decompositions
+    flat = FI_flat(k)
+    def apply_flat_law(xp, fg, yq):
+        x, p = xp
+        f, g = C.break_string(fg)
+        y, q = yq
+        ff = CatMat.from_string(ZZ, D, [x], '[[' + f + ']]', [y])
+        return CatMat.kronecker_product(ff, flat(p, g, q))
+
+
+    apply_flat = MatrixRepresentation(C, ZZ, apply_flat_law, target_cat=D)
+
+
+    def tail_shift_law(x, f, y):
+        return apply_flat(decomp(x, f, y))
+
+
+    return MatrixRepresentation(D, ZZ, tail_shift_law, target_cat=D)

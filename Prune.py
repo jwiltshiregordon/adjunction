@@ -21,16 +21,17 @@ def find_invertible_entry(cm):
 # Currently dgm has a single differential
 # and its source cat must be trivial
 # and [a, b] gives an interval in which dgm is supported
-def prune_dg_module(dgm, (a, b), verbose=False):
+def prune_dg_module(dgm, ab, verbose=False):
+    a, b = ab
     tv = dgm.cat.objects[0]
     #diff_dict = {d:dgm.differential(tv, (d,)) for d in range(a - 1, b + 1)}
     diff_dict = {}
     for d in range(a - 1, b + 1):
         if verbose:
-            print 'computing differential in degree ' + str(d)
+            print('computing differential in degree ' + str(d))
         diff_dict[d] = dgm.differential(tv, (d,))
     if verbose:
-        print 'original differentials computed'
+        print('original differentials computed')
     for d in range(a, b):
         while True:
             invertible_entry = find_invertible_entry(diff_dict[d])
@@ -62,14 +63,16 @@ def prune_dg_module(dgm, (a, b), verbose=False):
 
 
             if verbose:
-                print [len(diff_dict[p].source) for p in range(a, b + 1)]
+                print([len(diff_dict[p].source) for p in range(a, b + 1)])
 
-    def pruned_f_law((d,), x, f, y):
+    def pruned_f_law(d_singleton, x, f, y):
+        d = d_singleton[0]
         if d in range(a, b):
             return CatMat.identity_matrix(dgm.ring, dgm.cat, diff_dict[d].source)
         return CatMat.identity_matrix(dgm.ring, dgm.cat, [])
 
-    def pruned_d_law(x, (d,)):
+    def pruned_d_law(x, d_singleton):
+        d = d_singleton[0]
         if d in range(a - 1, b + 1):
             return diff_dict[d]
         return CatMat.zero_matrix(dgm.ring, dgm.cat, [], [])
@@ -96,7 +99,8 @@ def prune_matrix(m):
     return p, matrix(ring, x.inverse())[:, p:], x, y, matrix(ring, y.inverse())[p:, :]
 
 
-def prune_dg_module_on_poset(dgm, (a, b), verbose=False, assume_sorted=False):
+def prune_dg_module_on_poset(dgm, ab, verbose=False, assume_sorted=False):
+    a, b = ab
     tv = dgm.cat.objects[0]
     ring = dgm.ring
     cat = dgm.target_cat
@@ -104,10 +108,10 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False, assume_sorted=False):
     diff_dict = {}
     for d in range(a - 1, b + 1):
         if verbose:
-            print 'computing differential in degree ' + str(d)
+            print('computing differential in degree ' + str(d))
         diff_dict[d] = dgm.differential(tv, (d,))
     if verbose:
-        print 'original differentials computed'
+        print('original differentials computed')
 
     # Since we assume that cat is a poset,
     # we may convert the differentials to usual sagemath matrices
@@ -121,7 +125,7 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False, assume_sorted=False):
     m_dict = {}
     for d in range(a - 1, b + 1):
         if verbose:
-            print 'Expanding the differential in degree ' + str(d)
+            print('Expanding the differential in degree ' + str(d))
         entries = []
         z = 0
         dv = diff_dict[d].data_vector
@@ -202,11 +206,11 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False, assume_sorted=False):
         for x in cat.objects:
             upper_left = m_dict[d][:m_source[d, x], :m_target[d, x]]
             if verbose:
-                print 'Computing Smith form of a matrix with dimensions ' + str(upper_left.dimensions())
+                print('Computing Smith form of a matrix with dimensions ' + str(upper_left.dimensions()))
             dropped, sc, sr, tc, tr = prune_matrix(upper_left)
             if verbose:
-                print 'Dropping ' + str(dropped) + ' out of ' + str(m_source[d, x]) + \
-                      ' occurrences of ' + str(x) + ' in degree ' + str(d - 1)
+                print('Dropping ' + str(dropped) + ' out of ' + str(m_source[d, x]) + \
+                      ' occurrences of ' + str(x) + ' in degree ' + str(d - 1))
             m_target[d - 1, x] -= dropped
             m_source[d + 1, x] -= dropped
             cid = m_dict[d - 1].ncols() - sc.nrows()
@@ -243,12 +247,14 @@ def prune_dg_module_on_poset(dgm, (a, b), verbose=False, assume_sorted=False):
         data_vector = vector(ring, dv)
         diff_dict[d] = CatMat(ring, cat, source, data_vector, target)
 
-    def pruned_f_law((d,), x, f, y):
+    def pruned_f_law(d_singleton, x, f, y):
+        d = d_singleton[0]
         if d in range(a - 1, b + 1):
             return CatMat.identity_matrix(ring, cat, diff_dict[d].source)
         return dgm.module_in_degree((d,))(x, f, y)
 
-    def pruned_d_law(x, (d,)):
+    def pruned_d_law(x, d_singleton):
+        d = d_singleton[0]
         if d in range(a - 1, b + 1):
             return diff_dict[d]
         return dgm.differential(x, (d,))
