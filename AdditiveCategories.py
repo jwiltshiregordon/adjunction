@@ -32,7 +32,7 @@ from CatMat import *
 class PreadditiveCategory(object):
     def __init__(self, object_list, one_law, hom_law, composition_law, ring=ZZ,
                  object_latex_law=None, morphism_latex_law=None,
-                 cache=True):
+                 cache=True, sep=';'):
         self.objects = object_list
         self.basic_hom = hom_law
         self.basic_one = one_law
@@ -42,13 +42,14 @@ class PreadditiveCategory(object):
         self.hom_dict = {}
         self.mns = {}
         self.msn = {}
+        self.sep = sep
 
         self.lact = {}
         self.mact = {}
         self.ract = {}
         self.op_cat = OppositeCategory(self)
 
-        self.double_cat = ProductCategory(';', self.op_cat, self)
+        self.double_cat = ProductCategory(sep, self.op_cat, self)
 
         self.cache = cache
 

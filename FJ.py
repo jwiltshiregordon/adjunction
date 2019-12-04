@@ -192,7 +192,7 @@ def FJ(d):
     def mll(x, f, y):
         ret = f.replace('{', '[').replace('}', ']').replace('t^0', '').replace('t^1', 't')
         return ret if ret != '' else '1'
-    FJd = PreadditiveCategory(range(d, -1, -1), FJ_one, FJ_hom, FJ_comp, morphism_latex_law=mll)
+    FJd = PreadditiveCategory(range(d, -1, -1), FJ_one, FJ_hom, FJ_comp, morphism_latex_law=mll, sep=';')
     FIopxFJ = ProductCategory(';', FI(range(4)).op(), FJd)
 
     # We build the map FI_flat(a) ---> FI_flat(b) coming from the FJ morphism z : a ---> b.
@@ -257,6 +257,16 @@ def FJ_restrict(d, e):
 #         return CatMat.zero_matrix(ZZ, C, [x] if x <= e else [], [y] if y <= e else [])
 #
 #     return MatrixRepresentation(C, ZZ, truncation_law, target_cat=C)
+
+
+# Given a matrix over FJc for c <= d
+# finds a lift to FJd
+# Current implementation uses string manipulation
+# which is not ideal.
+def FJ_lift_matrix(d, m):
+    D, _, _ = FJ(d)
+    mstr = '[' + str(m).split('---[')[1].split(']-->')[0] + ']'
+    return CatMat.from_string(ZZ, D, m.source, mstr, m.target)
 
 
 def FJ_shift(d):
@@ -447,3 +457,72 @@ def FJ_product(d):
         return CatMat.block_matrix(tab)
 
     return MatrixRepresentation(DD, ZZ, FJ_product_law, target_cat=D)
+
+
+# Supply an FI-matrix m
+# and compute an FJ_d presentation matrix for coker m
+def present_tail_of_coker(d, m):
+    D, Xi, solve_to_Xi = FJ(d)
+    C = FI()
+    def I_one(x):
+        return '*'
+
+    def I_hom(x, y):
+        return ['*'] if x <= y else []
+
+    def I_comp(x, f, y, g, z):
+        return '*'
+
+    I = FiniteCategory([0, 1], I_one, I_hom, I_comp)
+    IxFJ = ProductCategory(';', I, D)
+
+    def law(xa, ff, yb):
+        _, f = IxFJ.break_string(ff)
+        x, a = xa
+        y, b = yb
+        fi_mat = \
+            {(0, 0): CatMat.identity_matrix(ZZ, C, m.target),
+             (0, 1): m,
+             (1, 1): CatMat.identity_matrix(ZZ, C, m.source)}[x, y]
+        fj_mat = CatMat.from_string(ZZ, D, [a], '[[' + f + ']]', [b])
+        return Xi(CatMat.kronecker_product(fi_mat.transpose(), fj_mat))
+
+    m_rep = MatrixRepresentation(IxFJ, ZZ, law)
+    pres = m_rep.presentation()
+    v = [e for i, (x, a) in enumerate(pres.source)
+         for j, (y, b) in enumerate(pres.target) for e in pres.entry_vector(i, j) if x == 1 and y == 1]
+    rows = [a for x, a in pres.source if x == 1]
+    cols = [b for y, b in pres.target if y == 1]
+    return CatMat(ZZ, D, rows, v, cols)
+
+
+# Calculate a pointwise, exact formula for the (zeroth) tail shift
+# of a generic FJ-module.  Precomposing a pointwise FJ-module with
+# the tail shift gives an FJ-module that appears as a summand of
+# every large-enough shift.
+def tail_shift(d):
+    D, Xi, solve_to_Xi = FJ(d)
+    fjp = FJ_product(d)
+    id0 = CatMat.identity_matrix(ZZ, D, [0])
+    def tail_shift_law(x, f, y):
+        ff = CatMat.from_string(ZZ, D, [x], '[[' + f + ']]', [y])
+        id0ff = CatMat.kronecker_product(';', id0, ff)
+        return fjp(id0ff)
+
+    return MatrixRepresentation(D, ZZ, tail_shift_law, target_cat=D)
+
+
+# The identity functor seems to appear in the upper left, followed by zeros.
+# This representation picks out the lower right block.
+def tail_derivative(d):
+    D , _, _ = FJ(d)
+    Dm, _, _ = FJ(d - 1)
+    ts = tail_shift(d)
+    def tail_derivative_law(x, f, y):
+        ff = CatMat.from_string(ZZ, Dm, [x], '[[' + f + ']]', [y])
+        fff = FJ_lift_matrix(d, ff)
+        m = ts(fff)
+        entries = [e for i in range(d - x) for j in range(d - y) for e in m.entry_vector(i + 1, j + 1)]
+        return CatMat(ZZ, D, m.source[1:], vector(ZZ, entries), m.target[1:])
+
+    return MatrixRepresentation(Dm, ZZ, tail_derivative_law, target_cat=D)
