@@ -4,7 +4,7 @@ from FJ import *
 # a monoidal structure on FJ.  On objects,
 # p * q = [p + q, p + q + 1, p + q + 2, ..., p + q + d]
 
-d = 2
+d = 3
 D, Xi, solve_to_Xi = FJ(d)
 DD = ProductCategory(';', D, D)
 C = FI()
@@ -12,10 +12,9 @@ CC = ProductCategory(';', C, C)
 
 
 
-s = FI_decompositions
 
 # Obtain an FI^op module from Xi(k) \boxtimes Xi(l)
-# by restricting along s^op
+# by restricting along s^op (s = FI_decompositions)
 # Since the output is matrices, we follow the FI_flat convention
 # and keep them as matrix reps FI --> mat/ZZ
 def skl_rep(k, l):
@@ -28,7 +27,7 @@ def skl_rep(k, l):
     outer = MatrixRepresentation(CC, ZZ, outer_law)
 
     def law(x, f, y):
-        return outer(s(x, f, y))
+        return outer(FI_decompositions(x, f, y))
 
     return MatrixRepresentation(C, ZZ, law)
 
@@ -127,11 +126,15 @@ def FJ_product_law(x, fg, y):
 FJ_product = MatrixRepresentation(DD, ZZ, FJ_product_law, target_cat=D)
 
 print()
-for x in DD.objects:
-    for y in DD.objects:
-        for z in DD.objects:
-            for f in DD.hom(x, y):
-                for g in DD.hom(y, z):
+doj = [x for x in DD.objects if x[0] + x[1] <= d]
+doj.reverse()
+for x in doj:
+    for y in doj:
+        for z in doj:
+            for f in [f for f in DD.hom(x, y) for f0, f1 in [DD.break_string(f)]
+                      if int(f0[2]) + x[0] <= d and int(f1[2]) + x[1] <= d]:
+                for g in [g for g in DD.hom(y, z) for g0, g1 in [DD.break_string(g)]
+                          if int(g0[2]) + y[0] <= d and int(g1[2]) + y[1] <= d]:
                     fm = FJ_product(x, f, y)
                     gm = FJ_product(y, g, z)
                     ff = CatMat.from_string(ZZ, DD, [x], '[[' + f + ']]', [y])
